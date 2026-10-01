@@ -318,7 +318,7 @@ body.is-fs #winner-banner {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 34%;
+  width: 50%;
   z-index: 1;
 }
 
@@ -326,8 +326,16 @@ body.is-fs #winner-banner {
   left: 0;
 }
 
+.hit-minus .hit-sign {
+  left: 50%;
+}
+
 .hit-plus {
   right: 0;
+}
+
+.hit-plus .hit-sign {
+  left: 50%;
 }
 
 .hit.pressed {
@@ -392,17 +400,17 @@ body.is-fs #winner-banner {
 }
 
 .hud-top {
-  top: auto;
-  bottom: 4px;
+  top: 8px;
+  bottom: auto;
   left: 0;
   right: 0;
   height: 36px;
-  padding: 0 6px;
-  display: table;
+  padding: 0 8px;
+  display: block;
   width: 100%;
-  table-layout: auto;
   pointer-events: none;
-  overflow: hidden;
+  overflow: visible;
+  z-index: 6;
   -webkit-box-sizing: border-box;
   box-sizing: border-box;
 }
@@ -439,16 +447,16 @@ body.is-fs #winner-banner {
 
 .name {
   position: absolute;
-  left: 12%;
-  right: 12%;
-  top: 8px;
+  left: 52px;
+  right: 12px;
+  top: 15px;
   max-width: none;
   height: 22px;
   font-size: 14px;
   font-weight: bold;
   line-height: 22px;
   letter-spacing: 1px;
-  text-align: center;
+  text-align: right;
   text-transform: uppercase;
   overflow: hidden;
   white-space: nowrap;
@@ -530,7 +538,9 @@ body.is-fs #winner-banner {
 .btn-menu {
   pointer-events: auto;
   display: block;
-  position: relative;
+  position: absolute;
+  left: 8px;
+  top: 0;
   width: 36px;
   height: 36px;
   padding: 0;
@@ -538,6 +548,33 @@ body.is-fs #winner-banner {
   border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.22);
   overflow: hidden;
+}
+
+.seat.menu-right .btn-menu {
+  left: auto;
+  right: 8px;
+}
+
+.seat.menu-right .name {
+  left: 12px;
+  right: 52px;
+  text-align: left;
+}
+
+.cmd-back {
+  display: inline-block;
+  height: 40px;
+  margin: 0 4px 0 2px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+  line-height: 40px;
+  letter-spacing: 0.3px;
+  vertical-align: top;
+  pointer-events: auto;
 }
 
 .menu-bars,
@@ -570,21 +607,170 @@ body.is-fs #winner-banner {
 
 .life {
   position: absolute;
-  left: 18%;
-  right: 18%;
+  left: 50%;
   top: 50%;
-  height: 88px;
-  margin-top: -44px;
+  width: auto;
+  height: 90px;
+  margin-top: -45px;
+  padding: 0 6px;
+  z-index: 3;
   text-align: center;
   font-size: 86px;
   font-weight: bold;
-  line-height: 88px;
+  line-height: 90px;
+  white-space: nowrap;
   pointer-events: auto;
+  cursor: pointer;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+  -webkit-transform: translateX(-50%);
+  transform: translateX(-50%);
 }
 
 .life.small {
   font-size: 48px;
+}
+
+.delta {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  margin-top: 48px;
+  height: 28px;
+  text-align: center;
+  font-size: 26px;
+  font-weight: bold;
+  line-height: 28px;
+  pointer-events: none;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+}
+
+.panel.cmd-mode .delta {
+  margin-top: 68px;
+}
+
+.hist {
+  position: absolute;
+  left: 22px;
+  top: 50%;
+  display: inline-block;
+  width: auto;
+  font-size: 0;
+  line-height: 0;
+  text-align: center;
+  pointer-events: none;
+  z-index: 3;
+  -webkit-transform: translateY(-50%);
+  transform: translateY(-50%);
+}
+
+.hist-item {
+  display: inline-block;
+  position: relative;
+  width: auto;
+  margin: 0 0 5px 0;
+  padding: 2px 8px 2px 18px;
+  background: rgba(0, 0, 0, 0.82);
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 16px;
+  text-align: center;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.hist-z0 {
+  padding: 4px 10px 4px 22px;
+  border-radius: 9px;
+  font-size: 20px;
+  line-height: 24px;
+}
+
+.hist-z1 {
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.hist-z2 {
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.hist-z3 {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.hist-z4 {
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.hist-up {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.hist-down {
+  color: rgba(255, 90, 78, 0.95);
+}
+
+.hist-item:before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 50%;
+  display: block;
+  width: 0;
+  height: 0;
+  margin: 0;
+  -webkit-transform: translateY(-50%);
+  transform: translateY(-50%);
+}
+
+.hist-z0:before {
+  left: 8px;
+}
+
+.hist-up:before {
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 5px solid rgba(255, 255, 255, 0.72);
+}
+
+.hist-down:before {
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid rgba(255, 90, 78, 0.95);
+}
+
+.hist-z0.hist-up:before {
+  border-left-width: 5px;
+  border-right-width: 5px;
+  border-bottom-width: 7px;
+}
+
+.hist-z0.hist-down:before {
+  border-left-width: 5px;
+  border-right-width: 5px;
+  border-top-width: 7px;
+}
+
+.hist-z3:before,
+.hist-z4:before {
+  left: 6px;
+  border-left-width: 3px;
+  border-right-width: 3px;
+}
+
+.hist-z3.hist-up:before,
+.hist-z4.hist-up:before {
+  border-bottom-width: 4px;
+}
+
+.hist-z3.hist-down:before,
+.hist-z4.hist-down:before {
+  border-top-width: 4px;
 }
 
 .life-caption {
@@ -603,89 +789,88 @@ body.is-fs #winner-banner {
 
 .cmd-row {
   position: absolute;
-  left: 4px;
-  right: 4px;
-  bottom: 68px;
-  height: 44px;
+  left: 50%;
+  right: auto;
+  bottom: 10px;
+  width: auto;
+  height: 40px;
+  padding: 0 6px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 20px;
   text-align: center;
-  overflow: hidden;
   white-space: nowrap;
+  overflow: hidden;
   pointer-events: auto;
   z-index: 4;
+  -webkit-transform: translateX(-50%);
+  transform: translateX(-50%);
 }
 
 .cmd-badge {
   display: inline-block;
-  min-width: 44px;
-  height: 42px;
+  height: 40px;
   margin: 0 2px;
-  padding: 2px 6px;
-  border-radius: 5px;
-  border: 2px solid rgba(255, 255, 255, 0.28);
+  padding: 0 10px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
   vertical-align: top;
   pointer-events: auto;
   color: #fff;
 }
 
 .cmd-badge.active {
-  border-color: #fff;
-  -webkit-box-shadow: 0 0 0 2px #c9a227;
-  box-shadow: 0 0 0 2px #c9a227;
+  background: rgba(255, 255, 255, 0.16);
 }
 
-.cmd-badge.lethal {
-  border-color: #ff3b30;
-  background: #8a1a1a !important;
+.cmd-badge.lethal .cmd-badge-n {
+  color: #ff8d84;
 }
 
-.cmd-badge-name,
-.cmd-badge-n {
-  display: block;
+.cmd-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 12px;
+  vertical-align: middle;
   pointer-events: none;
 }
 
-.cmd-badge-name {
-  font-size: 15px;
+.cmd-mark {
+  display: inline-block;
+  margin-right: 4px;
+  font-size: 11px;
   font-weight: bold;
-  line-height: 18px;
-  opacity: 0.95;
+  line-height: 40px;
+  vertical-align: middle;
+  pointer-events: none;
 }
 
 .cmd-badge-n {
+  display: inline-block;
   font-size: 18px;
   font-weight: bold;
-  line-height: 22px;
+  line-height: 40px;
+  vertical-align: middle;
+  pointer-events: none;
 }
 
 .panel.cmd-mode {
-  -webkit-box-shadow: inset 0 5px 0 #c9a227;
-  box-shadow: inset 0 5px 0 #c9a227;
+  -webkit-box-shadow: none;
+  box-shadow: none;
 }
 
 .tight .hud-top,
 .tight .hud-cell,
-.tight .cmd-nav,
-.tight .cmd-nav button,
-.tight .btn-menu,
-.tight .cmd-toggle {
+.tight .btn-menu {
   height: 32px;
 }
 
-.tight .cmd-toggle {
-  width: 42px;
-  min-width: 42px;
-  line-height: 32px;
-  font-size: 11px;
-}
-
-.tight .cmd-arrow,
-.tight .btn-menu,
-.tight .hud-cell-menu {
-  width: 32px;
-}
-
 .tight .name {
-  top: 6px;
+  top: 12px;
+  left: 48px;
+  right: 10px;
   font-size: 12px;
   height: 20px;
   line-height: 20px;
@@ -703,21 +888,36 @@ body.is-fs #winner-banner {
   width: 14px;
 }
 
-.tight .cmd-badge {
-  min-width: 44px;
-  height: 44px;
-  margin: 0 2px;
-  padding: 2px 5px;
+.tight .cmd-back {
+  height: 34px;
+  font-size: 12px;
+  line-height: 34px;
 }
 
-.tight .cmd-badge-name {
-  font-size: 13px;
-  line-height: 16px;
+.tight .cmd-badge {
+  height: 34px;
+  padding: 0 8px;
+}
+
+.tight .cmd-row {
+  height: 34px;
+  bottom: 6px;
+  border-radius: 17px;
+}
+
+.tight .cmd-dot {
+  width: 10px;
+  height: 10px;
+}
+
+.tight .cmd-mark {
+  font-size: 10px;
+  line-height: 34px;
 }
 
 .tight .cmd-badge-n {
-  font-size: 14px;
-  line-height: 16px;
+  font-size: 15px;
+  line-height: 34px;
 }
 
 .tight .life {
@@ -727,19 +927,61 @@ body.is-fs #winner-banner {
   margin-top: -28px;
 }
 
+.tight .delta {
+  margin-top: 30px;
+  height: 22px;
+  font-size: 18px;
+  line-height: 22px;
+}
+
+.tight .panel.cmd-mode .delta {
+  margin-top: 46px;
+}
+
+.tight .hist {
+  left: 22px;
+  width: auto;
+}
+
+.tight .hist-item {
+  width: auto;
+  margin-bottom: 3px;
+  padding: 1px 6px 1px 16px;
+}
+
+.tight .hist-z0 {
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.tight .hist-z1 {
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.tight .hist-z2,
+.tight .hist-z3,
+.tight .hist-z4 {
+  font-size: 12px;
+  line-height: 16px;
+}
+
 .tight .life-caption {
   margin-top: 30px;
   font-size: 12px;
 }
 
-.tight .cmd-row {
-  height: 40px;
-  bottom: 60px;
-}
-
 .tight .hit {
   top: 0;
   bottom: 0;
+}
+
+.tight .hit-minus .hit-sign {
+  left: 42%;
+}
+
+.tight .hit-plus .hit-sign {
+  left: 58%;
 }
 
 .tight .hud-bot {
