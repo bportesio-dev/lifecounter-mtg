@@ -772,6 +772,7 @@
       menuRight = rot === 180;
     }
     toggleClass(seat, 'menu-right', menuRight);
+    toggleClass(seat, 'hist-right', seat.getAttribute('data-index') === '1' || seat.getAttribute('data-index') === '2');
     if (rot === 180) {
       panel.style.webkitTransform = 'rotate(180deg)';
       panel.style.transform = 'rotate(180deg)';
