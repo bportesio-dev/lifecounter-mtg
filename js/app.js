@@ -3,18 +3,18 @@
 
   var STORAGE_KEY = 'mtgLifeCounter.v1';
   var COLORS = [
-    '#1b6b3a',
-    '#1a4a8a',
-    '#222222',
-    '#a33a2a',
+    '#1f7d3a',
+    '#2a5c9e',
+    '#6e38b0',
+    '#c44738',
     '#c4b896',
-    '#6b3aa3',
+    '#7a3aad',
     '#8a5a1a',
     '#1a7a7a',
     '#8a1a5a',
     '#3a6b8a'
   ];
-  var COLOR_NAMES = ['Verde', 'Azul', 'Negro', 'Rojo', 'Blanco', 'Violeta', 'Oro', 'Teal', 'Magenta', 'Grisazul'];
+  var COLOR_NAMES = ['Verde', 'Azul', 'Purpura', 'Rojo', 'Blanco', 'Violeta', 'Oro', 'Teal', 'Magenta', 'Grisazul'];
   var COUNTERS = [
     { key: 'poison', label: 'Veneno', lethal: 10 },
     { key: 'tax', label: 'Impuesto de comandante', lethal: 0 },
@@ -47,7 +47,9 @@
     suppressClick: false,
     suggestTimer: null,
     suggestSeq: 0,
-    suggestNames: []
+    suggestNames: [],
+    deltas: [],
+    history: []
   };
 
   var timerId = null;
@@ -139,6 +141,7 @@
       state.timerRunning = false;
       state.planeName = data.planeName || '';
       state.started = !!data.started;
+      fixPlayerColors();
       return state.started;
     } catch (e) {
       return false;
@@ -155,6 +158,47 @@
       charge: 0,
       custom: 0
     };
+  }
+
+  function isBlackish(color) {
+    var h = String(color || '').replace('#', '');
+    var r;
+    var g;
+    var b;
+    var max;
+    var min;
+    if (h.length === 3) {
+      h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+    }
+    if (h.length !== 6) {
+      return false;
+    }
+    r = parseInt(h.substring(0, 2), 16);
+    g = parseInt(h.substring(2, 4), 16);
+    b = parseInt(h.substring(4, 6), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+      return false;
+    }
+    max = Math.max(r, g, b);
+    min = Math.min(r, g, b);
+    return max < 80 && (max - min) < 28;
+  }
+
+  function fixPlayerColors() {
+    var i;
+    var changed = false;
+    if (!state.players) {
+      return;
+    }
+    for (i = 0; i < state.players.length; i++) {
+      if (isBlackish(state.players[i].color)) {
+        state.players[i].color = COLORS[2];
+        changed = true;
+      }
+    }
+    if (changed) {
+      save();
+    }
   }
 
   function makePlayer(i, life) {
@@ -266,6 +310,105 @@
       p.dead = true;
     }
     save();
+    return next - old;
+  }
+
+  function clearDeltas() {
+    var i;
+    var slot;
+    for (i = 0; i < ui.deltas.length; i++) {
+      slot = ui.deltas[i];
+      if (slot && slot.timer) {
+        clearTimeout(slot.timer);
+      }
+    }
+    ui.deltas = [];
+    ui.history = [];
+  }
+
+  function pushHistory(index, key, value) {
+    var book;
+    var list;
+    if (!value) {
+      return;
+    }
+    if (!ui.history[index]) {
+      ui.history[index] = {};
+    }
+    book = ui.history[index];
+    list = book[key];
+    if (!list) {
+      list = [];
+      book[key] = list;
+    }
+    list.push(value);
+    while (list.length > 5) {
+      list.shift();
+    }
+  }
+
+  function historyHtml(list) {
+    var html = '';
+    var i;
+    var n;
+    var abs;
+    var rank;
+    if (!list || !list.length) {
+      return '';
+    }
+    for (i = 0; i < list.length; i++) {
+      n = list[i];
+      abs = n < 0 ? -n : n;
+      rank = list.length - 1 - i;
+      html += '<span class="hist-item hist-z' + rank + ' ' + (n < 0 ? 'hist-down' : 'hist-up') + '">' +
+        abs + '</span><br>';
+    }
+    return html;
+  }
+
+  function commitDelta(index, key, value) {
+    if (!value) {
+      return;
+    }
+    pushHistory(index, key, value);
+    if (key !== 'life') {
+      pushHistory(index, 'life', -value);
+    }
+  }
+
+  function bumpDelta(index, amount, key) {
+    var slot;
+    if (!amount) {
+      return;
+    }
+    slot = ui.deltas[index];
+    if (!slot || slot.key !== key) {
+      if (slot && slot.timer) {
+        clearTimeout(slot.timer);
+        if (slot.value) {
+          commitDelta(index, slot.key, slot.value);
+        }
+      }
+      slot = { value: 0, key: key, timer: null };
+      ui.deltas[index] = slot;
+    } else if (slot.timer) {
+      clearTimeout(slot.timer);
+      slot.timer = null;
+    }
+    slot.value += amount;
+    slot.timer = setTimeout(function () {
+      if (ui.deltas[index] !== slot) {
+        return;
+      }
+      if (slot.value) {
+        commitDelta(index, slot.key, slot.value);
+      }
+      slot.value = 0;
+      slot.timer = null;
+      if (state.players[index]) {
+        updateSeat(index);
+      }
+    }, 2000);
   }
 
   function startGame(count, life) {
@@ -281,6 +424,7 @@
     state.timerRunning = false;
     state.planeName = '';
     state.started = true;
+    clearDeltas();
     stopTimer(true);
     syncCommanderMaps();
     save();
@@ -600,9 +744,13 @@
     return fillRows(W, H, gap, faceRows(n, true));
   }
 
-  function applySeatBox(seat, box) {
+  function applySeatBox(seat, box, boardW) {
     var panel = seat.getElementsByClassName('panel')[0];
     var rot = box.rot || 0;
+    var cx = box.x + box.w / 2;
+    var onRight = boardW && cx > boardW / 2 + 1;
+    var onLeft = boardW && cx < boardW / 2 - 1;
+    var menuRight = false;
     seat.style.left = box.x + 'px';
     seat.style.top = box.y + 'px';
     seat.style.width = box.w + 'px';
@@ -618,6 +766,12 @@
       panel.style.left = '0px';
       panel.style.top = '0px';
     }
+    if (onRight) {
+      menuRight = rot !== 180;
+    } else if (onLeft) {
+      menuRight = rot === 180;
+    }
+    toggleClass(seat, 'menu-right', menuRight);
     if (rot === 180) {
       panel.style.webkitTransform = 'rotate(180deg)';
       panel.style.transform = 'rotate(180deg)';
@@ -645,14 +799,12 @@
     var bot = document.createElement('div');
     var menu = document.createElement('button');
     var name = document.createElement('span');
-    var cmdNav = document.createElement('div');
-    var btnPrev = document.createElement('button');
-    var btnToggle = document.createElement('button');
-    var btnNext = document.createElement('button');
     var cellMenu = document.createElement('div');
     var cellName = document.createElement('div');
     var cellCmd = document.createElement('div');
     var life = document.createElement('div');
+    var delta = document.createElement('div');
+    var hist = document.createElement('div');
     var caption = document.createElement('div');
     var cmdRow = document.createElement('div');
     var artImg = document.createElement('img');
@@ -680,19 +832,10 @@
     cellMenu.className = 'hud-cell hud-cell-menu';
     cellName.className = 'hud-cell hud-cell-name';
     cellCmd.className = 'hud-cell hud-cell-cmd';
-    cmdNav.className = 'cmd-nav';
-    btnPrev.type = 'button';
-    btnPrev.className = 'cmd-arrow cmd-arrow-l';
-    btnPrev.setAttribute('data-act', 'cmd-prev');
-    btnToggle.type = 'button';
-    btnToggle.className = 'cmd-toggle';
-    btnToggle.setAttribute('data-act', 'cmd-toggle');
-    btnToggle.innerHTML = 'CMD';
-    btnNext.type = 'button';
-    btnNext.className = 'cmd-arrow cmd-arrow-r';
-    btnNext.setAttribute('data-act', 'cmd-next');
     life.className = 'life';
     life.setAttribute('data-act', 'keypad');
+    delta.className = 'delta';
+    hist.className = 'hist';
     caption.className = 'life-caption';
     cmdRow.className = 'cmd-row';
     artImg.className = 'panel-art';
@@ -702,17 +845,15 @@
     dead.className = 'dead-mask';
     skull.innerHTML = 'PERDIO';
     dead.appendChild(skull);
-    cmdNav.appendChild(btnPrev);
-    cmdNav.appendChild(btnToggle);
-    cmdNav.appendChild(btnNext);
     cellMenu.appendChild(menu);
-    cellCmd.appendChild(cmdNav);
     top.appendChild(cellMenu);
     top.appendChild(cellName);
     top.appendChild(cellCmd);
     hud.appendChild(top);
     hud.appendChild(name);
     hud.appendChild(life);
+    hud.appendChild(delta);
+    hud.appendChild(hist);
     hud.appendChild(caption);
     hud.appendChild(cmdRow);
     hud.appendChild(bot);
@@ -737,8 +878,8 @@
   }
 
   function openHubAisle(boxes, W, H) {
-    var hw = 28;
-    var hh = 32;
+    var hw = 4;
+    var hh = 4;
     var min = 48;
     var cx = W / 2;
     var cy = H / 2;
@@ -795,13 +936,31 @@
     var board = $('board');
     var W = board.clientWidth;
     var H = board.clientHeight;
-    var boxes = layoutBoxes(state.players.length, W, H);
-    var seats = board.getElementsByClassName('seat');
+    var edge = 8;
+    var padX = 0;
+    var innerW = W;
+    var innerH = H;
+    var boxes;
+    var seats;
     var i;
-    openHubAisle(boxes, W, H);
+    if (W > edge * 2 + 120) {
+      innerW = W - edge * 2;
+      padX = edge;
+    }
+    if (H > edge + 120) {
+      innerH = H - edge;
+    }
+    boxes = layoutBoxes(state.players.length, innerW, innerH);
+    seats = board.getElementsByClassName('seat');
+    openHubAisle(boxes, innerW, innerH);
+    for (i = 0; i < boxes.length; i++) {
+      if (boxes[i]) {
+        boxes[i].x += padX;
+      }
+    }
     for (i = 0; i < seats.length; i++) {
       if (boxes[i]) {
-        applySeatBox(seats[i], boxes[i]);
+        applySeatBox(seats[i], boxes[i], W);
       }
     }
   }
@@ -857,6 +1016,30 @@
     relayoutSoon();
   }
 
+  function renderMenuCommanders() {
+    var html = '';
+    var i;
+    var p;
+    var n;
+    var box = $('menu-cmd-counts');
+    if (!box) {
+      return;
+    }
+    if (!state.players || !state.players.length) {
+      box.innerHTML = '';
+      return;
+    }
+    for (i = 0; i < state.players.length; i++) {
+      p = state.players[i];
+      n = p.partners ? 2 : 1;
+      html += '<div class="counter-row"><span>' + escapeHtml(p.name) +
+        '</span><div class="ctr-btns"><button type="button" data-act="cmd-count" data-player="' + i +
+        '" data-dir="-1">-</button><strong>' + n + '</strong><button type="button" data-act="cmd-count" data-player="' +
+        i + '" data-dir="1">+</button></div></div>';
+    }
+    box.innerHTML = html;
+  }
+
   function renderToolbar() {
     $('turn-label').innerHTML = String(state.turn);
     $('timer-label').innerHTML = formatTime(state.timerSeconds);
@@ -887,18 +1070,19 @@
     var v;
     var src;
     var val;
-    var label;
+    if (p.view > 0) {
+      html += '<button type="button" class="cmd-back" data-act="cmd-back">Volver</button>';
+    }
     for (i = 1; i < views.length; i++) {
       v = views[i];
       src = state.players[v.src];
       val = p.cmd[v.key] || 0;
-      label = shortName(src.name) + (v.partner ? 'B' : '');
       html += '<button type="button" class="cmd-badge' +
         (p.view === i ? ' active' : '') +
         (val >= 21 ? ' lethal' : '') +
-        '" data-act="cmd-src" data-view="' + i +
-        '" style="background:' + src.color + '">' +
-        '<span class="cmd-badge-name">' + escapeHtml(label) + '</span>' +
+        '" data-act="cmd-src" data-view="' + i + '">' +
+        '<span class="cmd-dot" style="background:' + src.color + '"></span>' +
+        (src.partners ? '<span class="cmd-mark">' + (v.partner ? '2' : '1') + '</span>' : '') +
         '<span class="cmd-badge-n">' + val + '</span></button>';
     }
     return html;
@@ -912,8 +1096,9 @@
     var v = views[p.view] || views[0];
     var panel = seat.getElementsByClassName('panel')[0];
     var lifeEl = seat.getElementsByClassName('life')[0];
+    var deltaEl = seat.getElementsByClassName('delta')[0];
+    var histEl = seat.getElementsByClassName('hist')[0];
     var nameEl = seat.getElementsByClassName('name')[0];
-    var toggleEl = seat.getElementsByClassName('cmd-toggle')[0];
     var caption = seat.getElementsByClassName('life-caption')[0];
     var cmdRow = seat.getElementsByClassName('cmd-row')[0];
     var bot = seat.getElementsByClassName('hud-bot')[0];
@@ -923,10 +1108,13 @@
     var label;
     var boxW;
     var src;
+    var slot;
+    var deltaKey;
+    var histBook;
 
-    panel.style.backgroundColor = p.color;
+    panel.style.backgroundColor = (v.type === 'cmd' && state.players[v.src]) ? state.players[v.src].color : p.color;
     panel.style.backgroundImage = 'none';
-    if (p.bgArt && artEl) {
+    if (v.type !== 'cmd' && p.bgArt && artEl) {
       src = p.bgArt;
       artEl.setAttribute('referrerpolicy', 'no-referrer');
       if (p.bgCdn) {
@@ -966,18 +1154,27 @@
     if (v.type === 'life') {
       value = p.life;
       label = '';
-      toggleEl.innerHTML = 'CMD';
-      removeClass(toggleEl, 'on');
       removeClass(panel, 'cmd-mode');
     } else {
       value = p.cmd[v.key] || 0;
-      label = 'CMD ' + v.label + (value >= 21 ? ' LETAL' : '');
-      toggleEl.innerHTML = 'VIDA';
-      addClass(toggleEl, 'on');
+      label = '';
       addClass(panel, 'cmd-mode');
     }
     lifeEl.innerHTML = String(value);
     caption.innerHTML = label;
+    deltaKey = v.type === 'life' ? 'life' : v.key;
+    slot = ui.deltas[index];
+    if (deltaEl) {
+      if (slot && slot.value && slot.key === deltaKey) {
+        deltaEl.innerHTML = (slot.value > 0 ? '+' : '') + slot.value;
+      } else {
+        deltaEl.innerHTML = '';
+      }
+    }
+    if (histEl) {
+      histBook = ui.history[index];
+      histEl.innerHTML = historyHtml(histBook && histBook[deltaKey]);
+    }
     if ((seat.getAttribute('data-rot') || '0') === '180') {
       addClass(panel, 'rot-180');
       panel.style.webkitTransform = 'rotate(180deg)';
@@ -1036,6 +1233,7 @@
     var p = state.players[index];
     var views = viewList(index);
     var v = views[p.view] || views[0];
+    var applied = dir;
     if (v.type === 'life') {
       p.life += dir;
       if (dir > 0 && p.life > 0 && p.counters.poison < 10 && !commanderLethal(p)) {
@@ -1046,8 +1244,9 @@
       }
       save();
     } else {
-      addCmd(index, v.key, dir);
+      applied = addCmd(index, v.key, dir);
     }
+    bumpDelta(index, applied, v.type === 'life' ? 'life' : v.key);
     renderAll();
   }
 
@@ -1558,6 +1757,7 @@
       var actEl;
       var viewN;
       var layCard;
+      var i;
       var sugI;
       var sugEl;
 
@@ -1605,6 +1805,7 @@
           exitFullscreen();
         } else {
           renderToolbar();
+          renderMenuCommanders();
           openOverlay('overlay-menu');
         }
         return;
@@ -1647,6 +1848,22 @@
         openOverlay('overlay-plane');
         return;
       }
+      if (act === 'cmd-count') {
+        seatIdx = parseInt(el.getAttribute('data-player'), 10);
+        dir = parseInt(el.getAttribute('data-dir'), 10);
+        p = state.players[seatIdx];
+        if (p && ((dir > 0 && !p.partners) || (dir < 0 && p.partners))) {
+          p.partners = dir > 0;
+          for (i = 0; i < state.players.length; i++) {
+            state.players[i].view = 0;
+          }
+          syncCommanderMaps();
+          save();
+          renderAll();
+          renderMenuCommanders();
+        }
+        return;
+      }
       if (act === 'turn-prev') {
         if (state.turn > 1) {
           state.turn -= 1;
@@ -1676,6 +1893,15 @@
         seatIdx = seatIndexFrom(el);
         if (seatIdx >= 0) {
           openKeypad(seatIdx);
+        }
+        return;
+      }
+      if (act === 'cmd-back') {
+        seatIdx = seatIndexFrom(el);
+        if (seatIdx >= 0) {
+          state.players[seatIdx].view = 0;
+          save();
+          updateSeat(seatIdx);
         }
         return;
       }
