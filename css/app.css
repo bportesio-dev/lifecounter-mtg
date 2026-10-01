@@ -943,6 +943,11 @@ body.is-fs #winner-banner {
   width: auto;
 }
 
+.seat.hist-right .hist {
+  left: auto;
+  right: 22px;
+}
+
 .tight .hist-item {
   width: auto;
   margin-bottom: 3px;
