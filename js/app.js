@@ -8,13 +8,13 @@
     '#6e38b0',
     '#c44738',
     '#c4b896',
-    '#7a3aad',
-    '#8a5a1a',
     '#1a7a7a',
+    '#8a5a1a',
+    '#7a3aad',
     '#8a1a5a',
     '#3a6b8a'
   ];
-  var COLOR_NAMES = ['Verde', 'Azul', 'Purpura', 'Rojo', 'Blanco', 'Violeta', 'Oro', 'Teal', 'Magenta', 'Grisazul'];
+  var COLOR_NAMES = ['Verde', 'Azul', 'Purpura', 'Rojo', 'Blanco', 'Teal', 'Oro', 'Violeta', 'Magenta', 'Grisazul'];
   var COUNTERS = [
     { key: 'poison', label: 'Veneno', lethal: 10 },
     { key: 'tax', label: 'Impuesto de comandante', lethal: 0 },
@@ -505,7 +505,8 @@
     if (n === 4) {
       return [
         { id: 'face', name: 'Enfrentados', desc: 'Dos de cada lado de la mesa' },
-        { id: 'table', name: 'Alrededor', desc: 'Un jugador por lado' }
+        { id: 'table', name: 'Alrededor', desc: 'Un jugador por lado' },
+        { id: 'same', name: 'Misma vista', desc: 'Filas sin girar' }
       ];
     }
     if (n === 9) {
@@ -777,6 +778,12 @@
       around = assignAround(n);
       return layoutBands(W, H, gap, around, rotsTable);
     }
+    if (id === 'same' && n === 4) {
+      return fillRows(W, H, gap, [
+        { ids: [2, 3], rot: 0 },
+        { ids: [0, 1], rot: 0 }
+      ]);
+    }
     if (n === 4) {
       return fillRows(W, H, gap, [
         { ids: [2, 3], rot: 180 },
@@ -950,7 +957,7 @@
       if (midX > cx - hw && midX < cx + hw && midY > cy - hh && midY < cy + hh) {
         continue;
       }
-      if (b.w < W * 0.7) {
+      if (b.w < W * 0.7 && !(b.x < cx - hw && right > cx + hw)) {
         if (midX < cx && right > cx - hw) {
           if (cx - hw - b.x >= min) {
             b.w = cx - hw - b.x;
