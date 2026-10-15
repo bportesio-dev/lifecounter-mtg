@@ -208,6 +208,7 @@
       life: life,
       color: COLORS[i % COLORS.length],
       dead: false,
+      eliminated: false,
       partners: false,
       counters: emptyCounters(),
       cmd: {},
@@ -292,6 +293,14 @@
     return false;
   }
 
+  function rulesLoss(p) {
+    return p.life <= 0 || commanderLethal(p) || !!(p.counters && p.counters.poison >= 10);
+  }
+
+  function isOut(p) {
+    return rulesLoss(p) || !!p.eliminated;
+  }
+
   function addCmd(playerIndex, key, dir) {
     var p = state.players[playerIndex];
     var old;
@@ -306,9 +315,6 @@
     }
     p.cmd[key] = next;
     p.life -= (next - old);
-    if (next >= 21 || p.life <= 0 || p.counters.poison >= 10) {
-      p.dead = true;
-    }
     save();
     return next - old;
   }
@@ -856,7 +862,6 @@
     hud.appendChild(delta);
     hud.appendChild(hist);
     hud.appendChild(caption);
-    hud.appendChild(cmdRow);
     hud.appendChild(bot);
     panel.appendChild(artImg);
     panel.appendChild(shade);
@@ -864,6 +869,7 @@
     panel.appendChild(hitP);
     panel.appendChild(hud);
     panel.appendChild(dead);
+    panel.appendChild(cmdRow);
     seat.appendChild(panel);
     return seat;
   }
@@ -1112,6 +1118,7 @@
     var slot;
     var deltaKey;
     var histBook;
+    var htmlBadges;
 
     panel.style.backgroundColor = (v.type === 'cmd' && state.players[v.src]) ? state.players[v.src].color : p.color;
     panel.style.backgroundImage = 'none';
@@ -1150,7 +1157,8 @@
     }
     nameEl.innerHTML = escapeHtml(p.name);
     bot.innerHTML = chipsHtml(p);
-    cmdRow.innerHTML = cmdBadgesHtml(index);
+    htmlBadges = cmdBadgesHtml(index);
+    cmdRow.innerHTML = htmlBadges ? '<div class="cmd-bar">' + htmlBadges + '</div>' : '';
 
     if (v.type === 'life') {
       value = p.life;
@@ -1189,7 +1197,7 @@
     } else {
       removeClass(lifeEl, 'small');
     }
-    toggleClass(dead, 'show', p.dead);
+    toggleClass(dead, 'show', isOut(p));
   }
 
   function escapeHtml(s) {
@@ -1204,7 +1212,7 @@
     var last = null;
     var n = 0;
     for (i = 0; i < state.players.length; i++) {
-      if (!state.players[i].dead && state.players[i].life > 0) {
+      if (!isOut(state.players[i])) {
         n += 1;
         last = state.players[i].name;
       }
@@ -1237,12 +1245,6 @@
     var applied = dir;
     if (v.type === 'life') {
       p.life += dir;
-      if (dir > 0 && p.life > 0 && p.counters.poison < 10 && !commanderLethal(p)) {
-        p.dead = false;
-      }
-      if (p.counters.poison >= 10 || p.life <= 0 || commanderLethal(p)) {
-        p.dead = true;
-      }
       save();
     } else {
       applied = addCmd(index, v.key, dir);
@@ -1305,7 +1307,7 @@
     }
     $('counter-list').innerHTML = html;
     fillCmdList(index);
-    $('btn-kill').innerHTML = p.dead ? 'Revivir' : 'Eliminar jugador';
+    $('btn-kill').innerHTML = isOut(p) ? 'Revivir' : 'Eliminar jugador';
     fillPlayerCardUi(p);
     openOverlay('overlay-player');
   }
@@ -1544,9 +1546,6 @@
     }
     if (t.view.type === 'life') {
       p.life = n;
-      if (p.life <= 0 || p.counters.poison >= 10 || commanderLethal(p)) {
-        p.dead = true;
-      }
     } else {
       if (n < 0) {
         n = 0;
@@ -1706,6 +1705,47 @@
       save();
     }
     renderToolbar();
+  }
+
+  function commanderControlAt(x, y) {
+    var bars = document.getElementsByClassName('cmd-bar');
+    var i;
+    var j;
+    var bar;
+    var r;
+    var buttons;
+    var b;
+    var best;
+    var bestD;
+    var cx;
+    var cy;
+    var d;
+    for (i = 0; i < bars.length; i++) {
+      bar = bars[i];
+      r = bar.getBoundingClientRect();
+      if (x < r.left || x > r.right || y < r.top || y > r.bottom) {
+        continue;
+      }
+      buttons = bar.getElementsByTagName('button');
+      best = null;
+      bestD = 0;
+      for (j = 0; j < buttons.length; j++) {
+        b = buttons[j];
+        r = b.getBoundingClientRect();
+        if (x < r.left || x > r.right || y < r.top || y > r.bottom) {
+          continue;
+        }
+        cx = (r.left + r.right) / 2;
+        cy = (r.top + r.bottom) / 2;
+        d = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+        if (!best || d < bestD) {
+          best = b;
+          bestD = d;
+        }
+      }
+      return best || bar;
+    }
+    return null;
   }
 
   function bindPointer(root) {
@@ -1946,7 +1986,7 @@
       }
 
       hit = closest(el, '.hit');
-      if (hit) {
+      if (hit && !closest(el, '.cmd-bar')) {
         seatIdx = seatIndexFrom(hit);
         dir = parseInt(hit.getAttribute('data-dir'), 10);
         if (seatIdx >= 0) {
@@ -2036,9 +2076,13 @@
       }
       if (el.id === 'btn-kill') {
         p = state.players[ui.editingIndex];
-        p.dead = !p.dead;
+        if (rulesLoss(p)) {
+          p.eliminated = false;
+        } else {
+          p.eliminated = !p.eliminated;
+        }
         save();
-        $('btn-kill').innerHTML = p.dead ? 'Revivir' : 'Eliminar jugador';
+        $('btn-kill').innerHTML = isOut(p) ? 'Revivir' : 'Eliminar jugador';
         renderAll();
         return;
       }
@@ -2134,6 +2178,7 @@
           ckey = row.getAttribute('data-cmdkey');
           addCmd(ui.editingIndex, ckey, parseInt(el.getAttribute('data-cmddir'), 10));
           fillCmdList(ui.editingIndex);
+          $('btn-kill').innerHTML = isOut(state.players[ui.editingIndex]) ? 'Revivir' : 'Eliminar jugador';
           renderAll();
         }
         return;
@@ -2149,10 +2194,8 @@
             val = 0;
           }
           p.counters[ckey] = val;
-          if (ckey === 'poison' && val >= 10) {
-            p.dead = true;
-          }
           row.getElementsByTagName('strong')[0].innerHTML = String(val);
+          $('btn-kill').innerHTML = isOut(p) ? 'Revivir' : 'Eliminar jugador';
           save();
           renderAll();
         }
@@ -2202,11 +2245,11 @@
       t = e.touches[0];
       startX = t.clientX;
       startY = t.clientY;
-      startEl = e.target;
+      startEl = commanderControlAt(startX, startY) || e.target;
       longFired = false;
       moved = false;
       clearLong();
-      hit = closest(startEl, '.hit');
+      hit = closest(startEl, '.cmd-bar') ? null : closest(startEl, '.hit');
       if (hit) {
         pressHit(hit, true);
         longTimer = setTimeout(function () {
@@ -2262,7 +2305,7 @@
       dx = endX - startX;
       dy = endY - startY;
       seat = closest(startEl, '.seat');
-      if (seat && moved && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      if (seat && moved && !closest(startEl, '.cmd-bar') && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
         rot = parseInt(seat.getAttribute('data-rot'), 10) || 0;
         idx = parseInt(seat.getAttribute('data-index'), 10);
         if (rot === 180) {
@@ -2297,12 +2340,12 @@
         return;
       }
       hold = e.shiftKey;
-      handleTap(e.target, hold);
+      handleTap(commanderControlAt(e.clientX, e.clientY) || e.target, hold);
     });
 
     on(root, 'mousedown', function (e) {
       var hit;
-      if (touchMode) {
+      if (touchMode || commanderControlAt(e.clientX, e.clientY)) {
         return;
       }
       hit = closest(e.target, '.hit');
