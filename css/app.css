@@ -792,7 +792,7 @@ body.is-fs #winner-banner {
   left: 0;
   right: 0;
   bottom: 8px;
-  height: 44px;
+  height: auto;
   padding: 0;
   background: none;
   text-align: center;
@@ -805,15 +805,24 @@ body.is-fs #winner-banner {
 .cmd-bar {
   display: inline-block;
   max-width: 96%;
-  height: 44px;
+  height: auto;
+  min-height: 44px;
   padding: 0 6px;
   background: rgba(0, 0, 0, 0.55);
   border-radius: 22px;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
   pointer-events: auto;
   vertical-align: top;
+}
+
+.cmd-line {
+  display: block;
+  height: 44px;
+  white-space: nowrap;
+  font-size: 0;
+  line-height: 44px;
 }
 
 .cmd-badge {
@@ -866,6 +875,56 @@ body.is-fs #winner-banner {
   pointer-events: none;
 }
 
+.stat-line {
+  display: block;
+  height: 28px;
+  padding: 0 2px 6px;
+  white-space: nowrap;
+  font-size: 0;
+  line-height: 22px;
+  text-align: center;
+}
+
+.stat-chip {
+  display: inline-block;
+  height: 22px;
+  margin: 0 5px;
+  vertical-align: middle;
+  color: #fff;
+  font-size: 15px;
+  font-weight: bold;
+  line-height: 22px;
+}
+
+.stat-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 3px;
+  vertical-align: middle;
+  object-fit: contain;
+}
+
+.stat-icon.ink {
+  -webkit-filter: invert(1);
+  filter: invert(1);
+}
+
+.stat-icon.lg {
+  width: 20px;
+  height: 20px;
+}
+
+.stat-n {
+  display: inline-block;
+  vertical-align: middle;
+  pointer-events: none;
+}
+
+.stat-chip.danger .stat-n {
+  color: #ff8d84;
+}
+
 .panel.cmd-mode {
   -webkit-box-shadow: none;
   box-shadow: none;
@@ -910,13 +969,41 @@ body.is-fs #winner-banner {
 }
 
 .tight .cmd-row {
-  height: 36px;
+  height: auto;
   bottom: 4px;
 }
 
-.tight .cmd-bar {
+.tight .cmd-line {
   height: 36px;
+  line-height: 36px;
+}
+
+.tight .cmd-bar {
+  height: auto;
+  min-height: 36px;
   border-radius: 18px;
+}
+
+.tight .stat-line {
+  height: 24px;
+  padding-bottom: 4px;
+}
+
+.tight .stat-chip {
+  height: 18px;
+  margin: 0 3px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.tight .stat-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.tight .stat-icon.lg {
+  width: 18px;
+  height: 18px;
 }
 
 .tight .cmd-dot {
@@ -1012,6 +1099,14 @@ body.is-fs #winner-banner {
   height: 26px;
   font-size: 13px;
   line-height: 26px;
+}
+
+.seat.has-stats .hud-bot {
+  bottom: 72px;
+}
+
+.tight.has-stats .hud-bot {
+  bottom: 64px;
 }
 
 .dead-mask {

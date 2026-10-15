@@ -20,9 +20,14 @@
     { key: 'tax', label: 'Impuesto de comandante', lethal: 0 },
     { key: 'energy', label: 'Energia', lethal: 0 },
     { key: 'experience', label: 'Experiencia', lethal: 0 },
-    { key: 'storm', label: 'Storm', lethal: 0 },
-    { key: 'charge', label: 'Carga', lethal: 0 },
-    { key: 'custom', label: 'Personalizado', lethal: 0 }
+    { key: 'charge', label: 'Carga', lethal: 0 }
+  ];
+  var STAT_ICONS = [
+    { key: 'tax', src: 'assets/commander.png', tone: 'ink' },
+    { key: 'poison', src: 'assets/poison.webp', tone: 'ink' },
+    { key: 'energy', src: 'assets/energy.svg', tone: 'ink' },
+    { key: 'experience', src: 'assets/experience.png', tone: 'ink' },
+    { key: 'charge', src: 'assets/charge.svg', tone: 'ink' }
   ];
   var DICE = [4, 6, 8, 10, 12, 20];
 
@@ -154,9 +159,7 @@
       tax: 0,
       energy: 0,
       experience: 0,
-      storm: 0,
-      charge: 0,
-      custom: 0
+      charge: 0
     };
   }
 
@@ -1100,6 +1103,26 @@
     $('btn-timer').innerHTML = state.timerRunning ? '&#10073;&#10073;' : '&#9654;';
   }
 
+  function isStatCounter(key) {
+    var i;
+    for (i = 0; i < STAT_ICONS.length; i++) {
+      if (STAT_ICONS[i].key === key) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function counterLethal(key) {
+    var i;
+    for (i = 0; i < COUNTERS.length; i++) {
+      if (COUNTERS[i].key === key) {
+        return COUNTERS[i].lethal;
+      }
+    }
+    return 0;
+  }
+
   function chipsHtml(p) {
     var html = '';
     var i;
@@ -1107,11 +1130,35 @@
     var val;
     for (i = 0; i < COUNTERS.length; i++) {
       c = COUNTERS[i];
+      if (isStatCounter(c.key)) {
+        continue;
+      }
       val = p.counters[c.key] || 0;
       if (val) {
         html += '<span class="chip' + (c.lethal && val >= c.lethal ? ' danger' : '') + '">' +
           c.label.split(' ')[0] + ' ' + val + '</span>';
       }
+    }
+    return html;
+  }
+
+  function statIconsHtml(p) {
+    var html = '';
+    var i;
+    var spec;
+    var val;
+    var lethal;
+    for (i = 0; i < STAT_ICONS.length; i++) {
+      spec = STAT_ICONS[i];
+      val = p.counters[spec.key] || 0;
+      if (val <= 0) {
+        continue;
+      }
+      lethal = counterLethal(spec.key);
+      html += '<span class="stat-chip' + (lethal && val >= lethal ? ' danger' : '') + '">' +
+        '<img class="stat-icon ' + spec.tone + (spec.key === 'tax' || spec.key === 'poison' ? ' lg' : '') +
+        '" src="' + spec.src + '" alt="">' +
+        '<span class="stat-n">' + val + '</span></span>';
     }
     return html;
   }
@@ -1166,6 +1213,7 @@
     var deltaKey;
     var histBook;
     var htmlBadges;
+    var htmlStats;
 
     panel.style.backgroundColor = (v.type === 'cmd' && state.players[v.src]) ? state.players[v.src].color : p.color;
     panel.style.backgroundImage = 'none';
@@ -1205,7 +1253,16 @@
     nameEl.innerHTML = escapeHtml(p.name);
     bot.innerHTML = chipsHtml(p);
     htmlBadges = cmdBadgesHtml(index);
-    cmdRow.innerHTML = htmlBadges ? '<div class="cmd-bar">' + htmlBadges + '</div>' : '';
+    htmlStats = statIconsHtml(p);
+    if (htmlBadges || htmlStats) {
+      cmdRow.innerHTML = '<div class="cmd-bar">' +
+        (htmlBadges ? '<div class="cmd-line">' + htmlBadges + '</div>' : '') +
+        (htmlStats ? '<div class="stat-line">' + htmlStats + '</div>' : '') +
+        '</div>';
+    } else {
+      cmdRow.innerHTML = '';
+    }
+    toggleClass(seat, 'has-stats', !!htmlStats);
 
     if (v.type === 'life') {
       value = p.life;
