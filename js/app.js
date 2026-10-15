@@ -457,6 +457,12 @@
 
   function startGame(count, life) {
     var i;
+    if (count > 6) {
+      count = 6;
+    }
+    if (count < 2) {
+      count = 2;
+    }
     state.playerCount = count;
     state.startingLife = life;
     state.players = [];
@@ -493,15 +499,13 @@
     if (n === 3) {
       return [
         { id: 'face', name: '1 vs 2', desc: 'Uno enfrente, dos de este lado' },
-        { id: 'table', name: 'Alrededor', desc: 'Tres lados de la mesa' },
-        { id: 'same', name: 'Tres columnas', desc: 'Todos hacia el mismo lado' }
+        { id: 'table', name: 'Alrededor', desc: 'Tres lados de la mesa' }
       ];
     }
     if (n === 4) {
       return [
-        { id: 'face', name: '2 vs 2', desc: 'Dos de cada lado de la mesa' },
-        { id: 'table', name: 'Alrededor', desc: 'Un jugador por lado' },
-        { id: 'same', name: 'Cuadricula', desc: 'Todos hacia el mismo lado' }
+        { id: 'face', name: 'Enfrentados', desc: 'Dos de cada lado de la mesa' },
+        { id: 'table', name: 'Alrededor', desc: 'Un jugador por lado' }
       ];
     }
     if (n === 9) {
@@ -762,9 +766,6 @@
     if (id === 'same' && n === 2) {
       return fillRows(W, H, gap, [{ ids: [0, 1], rot: 0 }]);
     }
-    if (id === 'same' && n === 3) {
-      return fillRows(W, H, gap, [{ ids: [0, 1, 2], rot: 0 }]);
-    }
     if (id === 'same' && n === 9) {
       return fillRows(W, H, gap, [
         { ids: [6, 7, 8], rot: 0 },
@@ -962,7 +963,8 @@
         }
       }
       right = b.x + b.w;
-      if (b.h < H * 0.7) {
+      bottom = b.y + b.h;
+      if (b.h < H * 0.7 && !(b.y < cy - hh && bottom > cy + hh)) {
         if (midY < cy && bottom > cy - hh) {
           if (cy - hh - b.y >= min) {
             b.h = cy - hh - b.y;
@@ -2452,7 +2454,13 @@
     var html = '';
     var i;
     var n;
-    for (i = 2; i <= 10; i++) {
+    if (state.playerCount > 6) {
+      state.playerCount = 6;
+    }
+    if (state.playerCount < 2) {
+      state.playerCount = 2;
+    }
+    for (i = 2; i <= 6; i++) {
       n = i;
       html += '<button type="button" class="choice' + (n === state.playerCount ? ' selected' : '') +
         '" data-count="' + n + '">' + n + '</button>';

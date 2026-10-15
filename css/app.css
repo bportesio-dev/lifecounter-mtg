@@ -349,7 +349,7 @@ body.is-fs #winner-banner {
   width: 36px;
   height: 36px;
   margin-left: -18px;
-  margin-top: -18px;
+  margin-top: 10px;
   overflow: hidden;
   font-size: 0;
   line-height: 0;
@@ -993,6 +993,10 @@ body.is-fs #winner-banner {
 .tight .hit {
   top: 0;
   bottom: 44px;
+}
+
+.tight .hit-sign {
+  margin-top: 4px;
 }
 
 .tight .hit-minus .hit-sign {
