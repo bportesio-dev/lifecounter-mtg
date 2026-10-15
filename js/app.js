@@ -280,25 +280,63 @@
     return s;
   }
 
+  function cmdAmount(p, key) {
+    var n = Number(p && p.cmd ? p.cmd[key] : 0);
+    if (isNaN(n) || n < 0) {
+      return 0;
+    }
+    return n;
+  }
+
   function commanderLethal(p) {
-    var k;
-    if (!p.cmd) {
+    var i;
+    var j;
+    var src;
+    if (!p || !state.players) {
       return false;
     }
-    for (k in p.cmd) {
-      if (p.cmd.hasOwnProperty(k) && p.cmd[k] >= 21) {
-        return true;
+    for (i = 0; i < state.players.length; i++) {
+      if (state.players[i] !== p) {
+        continue;
       }
+      for (j = 0; j < state.players.length; j++) {
+        if (i === j) {
+          continue;
+        }
+        src = state.players[j];
+        if (cmdAmount(p, src.id) >= 21) {
+          return true;
+        }
+        if (src.partners && cmdAmount(p, src.id + 'b') >= 21) {
+          return true;
+        }
+      }
+      return false;
     }
     return false;
   }
 
+  function lifeAmount(p) {
+    var n = Number(p && p.life);
+    if (isNaN(n)) {
+      return 0;
+    }
+    return n;
+  }
+
   function rulesLoss(p) {
-    return p.life <= 0 || commanderLethal(p) || !!(p.counters && p.counters.poison >= 10);
+    return lifeAmount(p) <= 0 || commanderLethal(p) || !!(p.counters && Number(p.counters.poison) >= 10);
   }
 
   function isOut(p) {
-    return rulesLoss(p) || !!p.eliminated;
+    return showLost(p);
+  }
+
+  function showLost(p) {
+    if (lifeAmount(p) > 0 && !commanderLethal(p)) {
+      return !!(p.counters && Number(p.counters.poison) >= 10) || !!p.eliminated;
+    }
+    return true;
   }
 
   function addCmd(playerIndex, key, dir) {
@@ -1192,12 +1230,12 @@
 
     boxW = seat.clientWidth;
     toggleClass(seat, 'tight', boxW < 260);
-    if (boxW < 220 || (v.type === 'cmd' && value >= 21)) {
+    if (boxW < 220) {
       addClass(lifeEl, 'small');
     } else {
       removeClass(lifeEl, 'small');
     }
-    toggleClass(dead, 'show', isOut(p));
+    toggleClass(dead, 'show', showLost(p));
   }
 
   function escapeHtml(s) {
