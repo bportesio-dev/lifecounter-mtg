@@ -24,7 +24,7 @@
   ];
   var STAT_ICONS = [
     { key: 'tax', src: 'assets/commander.png', tone: 'ink' },
-    { key: 'poison', src: 'assets/poison.webp', tone: 'ink' },
+    { key: 'poison', src: 'assets/poison.png', tone: 'ink' },
     { key: 'energy', src: 'assets/energy.svg', tone: 'ink' },
     { key: 'experience', src: 'assets/experience.png', tone: 'ink' },
     { key: 'charge', src: 'assets/charge.svg', tone: 'ink' }
