@@ -317,7 +317,7 @@ body.is-fs #winner-banner {
 .hit {
   position: absolute;
   top: 0;
-  bottom: 0;
+  bottom: 56px;
   width: 50%;
   z-index: 1;
 }
@@ -563,15 +563,15 @@ body.is-fs #winner-banner {
 
 .cmd-back {
   display: inline-block;
-  height: 40px;
+  height: 44px;
   margin: 0 4px 0 2px;
-  padding: 0 4px;
+  padding: 0 8px;
   border: 0;
   background: transparent;
   color: #fff;
   font-size: 13px;
   font-weight: bold;
-  line-height: 40px;
+  line-height: 44px;
   letter-spacing: 0.3px;
   vertical-align: top;
   pointer-events: auto;
@@ -789,26 +789,36 @@ body.is-fs #winner-banner {
 
 .cmd-row {
   position: absolute;
-  left: 50%;
-  right: auto;
-  bottom: 10px;
-  width: auto;
-  height: 40px;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  height: 44px;
+  padding: 0;
+  background: none;
+  text-align: center;
+  white-space: nowrap;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.cmd-bar {
+  display: inline-block;
+  max-width: 96%;
+  height: 44px;
   padding: 0 6px;
   background: rgba(0, 0, 0, 0.55);
-  border-radius: 20px;
+  border-radius: 22px;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   pointer-events: auto;
-  z-index: 4;
-  -webkit-transform: translateX(-50%);
-  transform: translateX(-50%);
+  vertical-align: top;
 }
 
 .cmd-badge {
   display: inline-block;
-  height: 40px;
+  height: 44px;
   margin: 0 2px;
   padding: 0 10px;
   border: 0;
@@ -842,7 +852,7 @@ body.is-fs #winner-banner {
   margin-right: 4px;
   font-size: 11px;
   font-weight: bold;
-  line-height: 40px;
+  line-height: 44px;
   vertical-align: middle;
   pointer-events: none;
 }
@@ -851,7 +861,7 @@ body.is-fs #winner-banner {
   display: inline-block;
   font-size: 18px;
   font-weight: bold;
-  line-height: 40px;
+  line-height: 44px;
   vertical-align: middle;
   pointer-events: none;
 }
@@ -889,20 +899,24 @@ body.is-fs #winner-banner {
 }
 
 .tight .cmd-back {
-  height: 34px;
+  height: 36px;
   font-size: 12px;
-  line-height: 34px;
+  line-height: 36px;
 }
 
 .tight .cmd-badge {
-  height: 34px;
+  height: 36px;
   padding: 0 8px;
 }
 
 .tight .cmd-row {
-  height: 34px;
-  bottom: 6px;
-  border-radius: 17px;
+  height: 36px;
+  bottom: 4px;
+}
+
+.tight .cmd-bar {
+  height: 36px;
+  border-radius: 18px;
 }
 
 .tight .cmd-dot {
@@ -912,12 +926,12 @@ body.is-fs #winner-banner {
 
 .tight .cmd-mark {
   font-size: 10px;
-  line-height: 34px;
+  line-height: 36px;
 }
 
 .tight .cmd-badge-n {
   font-size: 15px;
-  line-height: 34px;
+  line-height: 36px;
 }
 
 .tight .life {
@@ -978,7 +992,7 @@ body.is-fs #winner-banner {
 
 .tight .hit {
   top: 0;
-  bottom: 0;
+  bottom: 44px;
 }
 
 .tight .hit-minus .hit-sign {
