@@ -288,7 +288,7 @@ body.is-fs #winner-banner {
   pointer-events: none;
   z-index: 0;
   object-fit: cover;
-  object-position: center 28%;
+  object-position: center center;
   -webkit-border-radius: 16px;
   border-radius: 16px;
 }

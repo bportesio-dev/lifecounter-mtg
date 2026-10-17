@@ -1218,10 +1218,10 @@
     panel.style.backgroundColor = (v.type === 'cmd' && state.players[v.src]) ? state.players[v.src].color : p.color;
     panel.style.backgroundImage = 'none';
     if (v.type !== 'cmd' && p.bgArt && artEl) {
-      src = p.bgArt;
+      src = toArtCrop(p.bgArt);
       artEl.setAttribute('referrerpolicy', 'no-referrer');
       if (p.bgCdn) {
-        artEl.setAttribute('data-cdn', p.bgCdn);
+        artEl.setAttribute('data-cdn', toArtCrop(p.bgCdn));
       }
       addClass(panel, 'has-art');
       if (artEl.getAttribute('src') !== src) {
@@ -1421,7 +1421,7 @@
     hideCardSuggest();
     if (p.bgArt) {
       $('player-card-status').innerHTML = escapeHtml(p.bgCard || 'Fondo activo');
-      $('player-card-preview').innerHTML = '<div class="bg-preview"><img src="' + p.bgArt + '" alt="" referrerpolicy="no-referrer"></div>';
+      $('player-card-preview').innerHTML = '<div class="bg-preview"><img src="' + toArtCrop(p.bgArt) + '" alt="" referrerpolicy="no-referrer"></div>';
     } else {
       $('player-card-status').innerHTML = '';
       $('player-card-preview').innerHTML = '';
@@ -1501,14 +1501,24 @@
     searchPlayerBg();
   }
 
+  function toArtCrop(url) {
+    var s = String(url || '');
+    if (!s) {
+      return '';
+    }
+    s = s.replace(/\/(small|normal|large|png|border_crop)\//, '/art_crop/');
+    s = s.replace(/version=(small|normal|large|png|border_crop)/, 'version=art_crop');
+    return s;
+  }
+
   function cardArtUrl(card) {
     var face;
     if (card.image_uris) {
-      return card.image_uris.normal || card.image_uris.large || card.image_uris.art_crop || card.image_uris.small || '';
+      return card.image_uris.art_crop || card.image_uris.normal || card.image_uris.large || card.image_uris.small || '';
     }
     if (card.card_faces && card.card_faces[0] && card.card_faces[0].image_uris) {
       face = card.card_faces[0].image_uris;
-      return face.normal || face.large || face.art_crop || face.small || '';
+      return face.art_crop || face.normal || face.large || face.small || '';
     }
     return '';
   }
@@ -1554,7 +1564,7 @@
         $('player-card-status').innerHTML = 'Respuesta invalida.';
         return;
       }
-      art = cardApiImageUrl(card, 'normal') || cardArtUrl(card);
+      art = cardApiImageUrl(card, 'art_crop') || cardArtUrl(card);
       if (!art) {
         $('player-card-status').innerHTML = 'Esa carta no tiene imagen.';
         return;
