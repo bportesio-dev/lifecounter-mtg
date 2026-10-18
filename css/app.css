@@ -779,6 +779,9 @@ body.is-fs #winner-banner {
   font-size: 14px;
   font-weight: bold;
   letter-spacing: 0.3px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   pointer-events: none;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
 }

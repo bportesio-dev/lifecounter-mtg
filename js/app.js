@@ -1270,7 +1270,7 @@
       removeClass(panel, 'cmd-mode');
     } else {
       value = p.cmd[v.key] || 0;
-      label = '';
+      label = 'Daño comandante ' + escapeHtml(String(v.label || '').replace(/^Jugador/i, 'jugador'));
       addClass(panel, 'cmd-mode');
     }
     lifeEl.innerHTML = String(value);
