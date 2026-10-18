@@ -635,7 +635,7 @@ body.is-fs #winner-banner {
   left: 0;
   right: 0;
   top: 50%;
-  margin-top: 48px;
+  margin-top: -76px;
   height: 28px;
   text-align: center;
   font-size: 26px;
@@ -643,10 +643,6 @@ body.is-fs #winner-banner {
   line-height: 28px;
   pointer-events: none;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
-}
-
-.panel.cmd-mode .delta {
-  margin-top: 68px;
 }
 
 .hist {
@@ -1029,14 +1025,10 @@ body.is-fs #winner-banner {
 }
 
 .tight .delta {
-  margin-top: 30px;
+  margin-top: -52px;
   height: 22px;
   font-size: 18px;
   line-height: 22px;
-}
-
-.tight .panel.cmd-mode .delta {
-  margin-top: 46px;
 }
 
 .tight .hist {
