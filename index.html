@@ -11,7 +11,7 @@
   <meta name="format-detection" content="telephone=no">
   <meta name="referrer" content="no-referrer">
   <title>MTG Life Counter</title>
-  <link rel="stylesheet" href="css/app.css?v=42">
+  <link rel="stylesheet" href="css/app.css?v=48">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
 </head>
 <body>
@@ -26,6 +26,11 @@
     <div id="winner-banner" class="hidden">
       <span id="winner-text"></span>
     </div>
+    <svg id="drag-arrow" class="drag-arrow" xmlns="http://www.w3.org/2000/svg">
+      <line id="drag-arrow-shadow"></line>
+      <line id="drag-arrow-line"></line>
+      <polygon id="drag-arrow-head"></polygon>
+    </svg>
   </div>
 
   <div id="overlay-setup" class="overlay is-open">
@@ -55,6 +60,14 @@
         <button type="button" class="btn-gold btn-lg" id="btn-start">Empezar partida</button>
       </div>
       <p class="hint">En el iPad: Safari &rarr; Compartir &rarr; A&ntilde;adir a pantalla de inicio para pantalla completa.</p>
+    </div>
+  </div>
+
+  <div id="overlay-first" class="overlay">
+    <div class="modal">
+      <h2>¿Quién arranca?</h2>
+      <p class="sub">Ese jugador queda en turno. Los demás se ven más oscuros. Siguiente pasa al próximo.</p>
+      <div id="first-row"></div>
     </div>
   </div>
 
@@ -186,13 +199,14 @@
       <p class="sub">1 es un solo comandante. 2 agrega un segundo daño de comandante.</p>
       <div id="menu-cmd-counts"></div>
       <h3>Herramientas</h3>
+      <button type="button" class="menu-item" id="btn-chart" data-act="chart">Gráfico de vida</button>
       <button type="button" class="menu-item" id="btn-dice" data-act="dice">Dados y moneda</button>
       <button type="button" class="menu-item" id="btn-high" data-act="high">High roll (d20)</button>
       <button type="button" class="menu-item" id="btn-search" data-act="search">Buscar carta</button>
       <button type="button" class="menu-item" id="btn-plane" data-act="plane">Dado planar</button>
       <h3>Turno</h3>
       <div class="counter-row">
-        <span>Turno</span>
+        <span id="turn-who">Turno</span>
         <div class="ctr-btns">
           <button type="button" id="btn-turn-prev" data-act="turn-prev">-</button>
           <strong id="turn-label">1</strong>
@@ -212,6 +226,33 @@
     </div>
   </div>
 
+  <div id="overlay-strike" class="overlay">
+    <div class="modal modal-sm">
+      <h2 id="strike-title">Daño normal</h2>
+      <p class="sub" id="strike-sub"></p>
+      <div id="strike-value" class="strike-value">1</div>
+      <div class="strike-row">
+        <button type="button" class="btn" id="strike-minus" data-act="strike-minus">-</button>
+        <button type="button" class="btn" id="strike-plus" data-act="strike-plus">+</button>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn" id="strike-cancel" data-act="strike-cancel">Cancelar</button>
+        <button type="button" class="btn-gold" id="strike-ok" data-act="strike-ok">Aplicar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="overlay-chart" class="overlay">
+    <div class="modal modal-wide">
+      <h2>Vida por turno</h2>
+      <p class="sub">Cada línea es un jugador. El número marca el daño normal recibido en ese turno.</p>
+      <div id="life-chart"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-gold" id="btn-chart-close" data-act="chart-close">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="overlay-confirm" class="overlay">
     <div class="modal modal-sm">
       <h2>Nueva partida</h2>
@@ -223,6 +264,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=45"></script>
+  <script src="js/app.js?v=52"></script>
 </body>
 </html>

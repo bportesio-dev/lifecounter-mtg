@@ -37,6 +37,7 @@
     layoutId: 'face',
     players: [],
     turn: 1,
+    active: 0,
     timerSeconds: 0,
     timerRunning: false,
     planeName: '',
@@ -54,7 +55,11 @@
     suggestSeq: 0,
     suggestNames: [],
     deltas: [],
-    history: []
+    history: [],
+    strikeFrom: -1,
+    strikeTo: -1,
+    strikeAmount: 1,
+    hadWinner: false
   };
 
   var timerId = null;
@@ -67,18 +72,42 @@
     el.addEventListener(ev, fn, false);
   }
 
+  function classText(el) {
+    if (typeof el.className === 'string') {
+      return el.className;
+    }
+    if (el.className && typeof el.className.baseVal === 'string') {
+      return el.className.baseVal;
+    }
+    return el.getAttribute('class') || '';
+  }
+
+  function setClassText(el, value) {
+    if (typeof el.className === 'string') {
+      el.className = value;
+      return;
+    }
+    if (el.className && typeof el.className.baseVal === 'string') {
+      el.className.baseVal = value;
+      return;
+    }
+    el.setAttribute('class', value);
+  }
+
   function hasClass(el, name) {
-    return (' ' + el.className + ' ').indexOf(' ' + name + ' ') !== -1;
+    return (' ' + classText(el) + ' ').indexOf(' ' + name + ' ') !== -1;
   }
 
   function addClass(el, name) {
+    var current;
     if (!hasClass(el, name)) {
-      el.className = el.className ? el.className + ' ' + name : name;
+      current = classText(el);
+      setClassText(el, current ? current + ' ' + name : name);
     }
   }
 
   function removeClass(el, name) {
-    el.className = (' ' + el.className + ' ').replace(' ' + name + ' ', ' ').replace(/^ | $/g, '');
+    setClassText(el, (' ' + classText(el) + ' ').replace(' ' + name + ' ', ' ').replace(/^ | $/g, ''));
   }
 
   function toggleClass(el, name, onFlag) {
@@ -142,10 +171,13 @@
       state.layoutId = data.layoutId || 'face';
       state.players = data.players;
       state.turn = data.turn || 1;
+      state.active = typeof data.active === 'number' ? data.active : 0;
       state.timerSeconds = data.timerSeconds || 0;
       state.timerRunning = false;
       state.planeName = data.planeName || '';
       state.started = !!data.started;
+      state.lifeByTurn = data.lifeByTurn || [];
+      state.damageLog = data.damageLog || [];
       fixPlayerColors();
       return state.started;
     } catch (e) {
@@ -356,6 +388,7 @@
     }
     p.cmd[key] = next;
     p.life -= (next - old);
+    noteLife();
     save();
     return next - old;
   }
@@ -458,6 +491,107 @@
     }, 2000);
   }
 
+  function turnRing() {
+    var n;
+    var order = [];
+    var i;
+    var face4;
+    if (!state.players || !state.players.length) {
+      return order;
+    }
+    n = state.players.length;
+    if (n === 4 && state.layoutId !== 'table') {
+      face4 = [0, 2, 3, 1];
+      for (i = 0; i < face4.length; i++) {
+        order.push(face4[i]);
+      }
+      return order;
+    }
+    order.push(0);
+    for (i = n - 1; i >= 1; i--) {
+      order.push(i);
+    }
+    return order;
+  }
+
+  function nextAlive(from, dir) {
+    var order = turnRing();
+    var n = order.length;
+    var pos = 0;
+    var i;
+    var at;
+    var idx;
+    if (!n) {
+      return 0;
+    }
+    for (i = 0; i < n; i++) {
+      if (order[i] === from) {
+        pos = i;
+        break;
+      }
+    }
+    dir = dir < 0 ? -1 : 1;
+    for (i = 1; i <= n; i++) {
+      at = pos + dir * i;
+      at = ((at % n) + n) % n;
+      idx = order[at];
+      if (state.players[idx] && !isOut(state.players[idx])) {
+        return idx;
+      }
+    }
+    return from;
+  }
+
+  function ensureActive() {
+    var n;
+    if (!state.players || !state.players.length) {
+      state.active = 0;
+      return;
+    }
+    n = state.players.length;
+    if (typeof state.active !== 'number' || isNaN(state.active) || state.active < 0 || state.active >= n) {
+      state.active = 0;
+    }
+    if (isOut(state.players[state.active])) {
+      state.active = nextAlive(state.active, 1);
+    }
+  }
+
+  function advanceTurn(dir) {
+    if (!state.started || !state.players || !state.players.length) {
+      return;
+    }
+    ensureActive();
+    if (dir < 0) {
+      if (state.turn > 1) {
+        state.turn -= 1;
+      }
+      state.active = nextAlive(state.active, -1);
+    } else {
+      noteLife();
+      state.active = nextAlive(state.active, 1);
+      state.turn += 1;
+      noteLife();
+    }
+    save();
+    renderAll();
+  }
+
+  function openFirstPicker() {
+    var html = '';
+    var i;
+    var p;
+    html = '<button type="button" class="first-player random" data-act="first-random">Aleatorio</button>';
+    for (i = 0; i < state.players.length; i++) {
+      p = state.players[i];
+      html += '<button type="button" class="first-player" data-act="first-player" data-player="' + i + '">' +
+        '<span class="first-swatch" style="background:' + p.color + '"></span>' +
+        escapeHtml(p.name) + '</button>';
+    }
+    $('first-row').innerHTML = html;
+    openOverlay('overlay-first');
+  }
+
   function startGame(count, life) {
     var i;
     if (count > 6) {
@@ -473,18 +607,24 @@
       state.players.push(makePlayer(i, life));
     }
     state.turn = 1;
+    state.active = 0;
     state.timerSeconds = 0;
     state.timerRunning = false;
     state.planeName = '';
     state.started = true;
+    state.lifeByTurn = [];
+    state.damageLog = [];
+    ui.hadWinner = false;
     clearDeltas();
     stopTimer(true);
     syncCommanderMaps();
+    noteLife();
     save();
     closeOverlay('overlay-setup');
     buildSeats();
     renderToolbar();
     renderAll();
+    openFirstPicker();
   }
 
   function layoutBoxes(n, W, H) {
@@ -867,6 +1007,7 @@
     var shade = document.createElement('div');
     var dead = document.createElement('div');
     var skull = document.createElement('span');
+    var nextBtn = document.createElement('button');
 
     seat.className = 'seat';
     seat.setAttribute('data-index', String(index));
@@ -899,6 +1040,10 @@
     artImg.setAttribute('referrerpolicy', 'no-referrer');
     shade.className = 'panel-shade';
     dead.className = 'dead-mask';
+    nextBtn.type = 'button';
+    nextBtn.className = 'btn-next';
+    nextBtn.setAttribute('data-act', 'turn-next');
+    nextBtn.innerHTML = 'Siguiente';
     skull.innerHTML = 'PERDIO';
     dead.appendChild(skull);
     cellMenu.appendChild(menu);
@@ -919,6 +1064,7 @@
     panel.appendChild(hud);
     panel.appendChild(dead);
     panel.appendChild(cmdRow);
+    panel.appendChild(nextBtn);
     seat.appendChild(panel);
     return seat;
   }
@@ -1098,7 +1244,14 @@
   }
 
   function renderToolbar() {
+    var who = 'Turno';
     $('turn-label').innerHTML = String(state.turn);
+    if (state.players && state.players[state.active]) {
+      who = state.players[state.active].name;
+    }
+    if ($('turn-who')) {
+      $('turn-who').innerHTML = escapeHtml(who);
+    }
     $('timer-label').innerHTML = formatTime(state.timerSeconds);
     $('btn-timer').innerHTML = state.timerRunning ? '&#10073;&#10073;' : '&#9654;';
   }
@@ -1302,6 +1455,8 @@
       removeClass(lifeEl, 'small');
     }
     toggleClass(dead, 'show', showLost(p));
+    toggleClass(seat, 'is-turn', index === state.active);
+    toggleClass(seat, 'waiting', index !== state.active);
   }
 
   function escapeHtml(s) {
@@ -1328,6 +1483,7 @@
     var i;
     var banner = $('winner-banner');
     var w;
+    ensureActive();
     for (i = 0; i < state.players.length; i++) {
       updateSeat(i);
     }
@@ -1337,8 +1493,13 @@
     if (state.started && state.players.length > 1 && w) {
       removeClass(banner, 'hidden');
       $('winner-text').innerHTML = 'Ganador: ' + escapeHtml(w);
+      if (!ui.hadWinner) {
+        ui.hadWinner = true;
+        openLifeChart();
+      }
     } else {
       addClass(banner, 'hidden');
+      ui.hadWinner = false;
     }
   }
 
@@ -1349,6 +1510,7 @@
     var applied = dir;
     if (v.type === 'life') {
       p.life += dir;
+      noteLife();
       save();
     } else {
       applied = addCmd(index, v.key, dir);
@@ -1660,6 +1822,7 @@
     }
     if (t.view.type === 'life') {
       p.life = n;
+      noteLife();
     } else {
       if (n < 0) {
         n = 0;
@@ -1862,6 +2025,317 @@
     return null;
   }
 
+  function lifeSnapshot() {
+    var out = [];
+    var i;
+    for (i = 0; i < state.players.length; i++) {
+      out.push(state.players[i].life);
+    }
+    return out;
+  }
+
+  function noteLife() {
+    var turn;
+    if (!state.started || !state.players || !state.players.length) {
+      return;
+    }
+    if (!state.lifeByTurn) {
+      state.lifeByTurn = [];
+    }
+    turn = state.turn || 1;
+    while (state.lifeByTurn.length < turn) {
+      state.lifeByTurn.push(lifeSnapshot());
+    }
+    state.lifeByTurn[turn - 1] = lifeSnapshot();
+  }
+
+  function seatCenter(index) {
+    var board = $('board');
+    var seat = board.getElementsByClassName('seat')[index];
+    var b;
+    var r;
+    if (!seat) {
+      return null;
+    }
+    b = board.getBoundingClientRect();
+    r = seat.getBoundingClientRect();
+    return {
+      x: r.left - b.left + r.width / 2,
+      y: r.top - b.top + r.height / 2
+    };
+  }
+
+  function seatAtPoint(x, y) {
+    var el = document.elementFromPoint(x, y);
+    var seat;
+    if (!el) {
+      return -1;
+    }
+    seat = closest(el, '.seat');
+    if (!seat || closest(el, '.overlay')) {
+      return -1;
+    }
+    return parseInt(seat.getAttribute('data-index'), 10);
+  }
+
+  function markStrikeTarget(index) {
+    var seats = $('board').getElementsByClassName('seat');
+    var i;
+    for (i = 0; i < seats.length; i++) {
+      toggleClass(seats[i], 'strike-target', i === index);
+    }
+  }
+
+  function hideArrow() {
+    removeClass($('drag-arrow'), 'show');
+    markStrikeTarget(-1);
+  }
+
+  function showArrow(x1, y1, x2, y2) {
+    var svg = $('drag-arrow');
+    var board = $('board');
+    var dx = x2 - x1;
+    var dy = y2 - y1;
+    var len = Math.sqrt(dx * dx + dy * dy);
+    var ux;
+    var uy;
+    var px;
+    var py;
+    var s = 16;
+    var w = 8;
+    if (!svg || len < 8) {
+      return;
+    }
+    ux = dx / len;
+    uy = dy / len;
+    px = -uy;
+    py = ux;
+    svg.setAttribute('width', String(board.clientWidth));
+    svg.setAttribute('height', String(board.clientHeight));
+    svg.style.width = board.clientWidth + 'px';
+    svg.style.height = board.clientHeight + 'px';
+    $('drag-arrow-shadow').setAttribute('x1', String(x1));
+    $('drag-arrow-shadow').setAttribute('y1', String(y1));
+    $('drag-arrow-shadow').setAttribute('x2', String(x2));
+    $('drag-arrow-shadow').setAttribute('y2', String(y2));
+    $('drag-arrow-line').setAttribute('x1', String(x1));
+    $('drag-arrow-line').setAttribute('y1', String(y1));
+    $('drag-arrow-line').setAttribute('x2', String(x2));
+    $('drag-arrow-line').setAttribute('y2', String(y2));
+    $('drag-arrow-head').setAttribute('points',
+      x2 + ',' + y2 + ' ' +
+      (x2 - ux * s + px * w) + ',' + (y2 - uy * s + py * w) + ' ' +
+      (x2 - ux * s - px * w) + ',' + (y2 - uy * s - py * w));
+    addClass(svg, 'show');
+  }
+
+  function updateDragArrow(fromIndex, clientX, clientY, toIndex) {
+    var from = seatCenter(fromIndex);
+    var board;
+    var to;
+    var x2;
+    var y2;
+    var dx;
+    var dy;
+    var len;
+    if (!from) {
+      return;
+    }
+    board = $('board').getBoundingClientRect();
+    if (toIndex >= 0 && toIndex !== fromIndex) {
+      to = seatCenter(toIndex);
+      x2 = to.x;
+      y2 = to.y;
+      dx = x2 - from.x;
+      dy = y2 - from.y;
+      len = Math.sqrt(dx * dx + dy * dy) || 1;
+      if (len > 56) {
+        x2 -= dx / len * 42;
+        y2 -= dy / len * 42;
+      }
+      markStrikeTarget(toIndex);
+    } else {
+      x2 = clientX - board.left;
+      y2 = clientY - board.top;
+      markStrikeTarget(-1);
+    }
+    showArrow(from.x, from.y, x2, y2);
+  }
+
+  function openStrike(fromIndex, toIndex) {
+    var a = state.players[fromIndex];
+    var b = state.players[toIndex];
+    if (!a || !b) {
+      return;
+    }
+    ui.strikeFrom = fromIndex;
+    ui.strikeTo = toIndex;
+    ui.strikeAmount = 1;
+    $('strike-title').innerHTML = 'Daño normal';
+    $('strike-sub').innerHTML = escapeHtml(a.name) + ' daña a ' + escapeHtml(b.name);
+    $('strike-value').innerHTML = '1';
+    openOverlay('overlay-strike');
+  }
+
+  function applyStrike() {
+    var defender;
+    var amount = ui.strikeAmount;
+    if (ui.strikeTo < 0 || !state.players[ui.strikeTo]) {
+      closeOverlay('overlay-strike');
+      return;
+    }
+    if (amount < 1) {
+      amount = 1;
+    }
+    defender = state.players[ui.strikeTo];
+    defender.life -= amount;
+    if (!state.damageLog) {
+      state.damageLog = [];
+    }
+    state.damageLog.push({
+      turn: state.turn || 1,
+      from: ui.strikeFrom,
+      to: ui.strikeTo,
+      amount: amount
+    });
+    noteLife();
+    save();
+    closeOverlay('overlay-strike');
+    bumpDelta(ui.strikeTo, -amount, 'life');
+    renderAll();
+  }
+
+  function openLifeChart() {
+    openOverlay('overlay-chart');
+    renderLifeChart();
+  }
+
+  function renderLifeChart() {
+    var turns = state.lifeByTurn || [];
+    var players = state.players || [];
+    var log = state.damageLog || [];
+    var W = 560;
+    var H = 280;
+    var chartEl = $('life-chart');
+    var availW;
+    var availH;
+    if (chartEl && chartEl.clientWidth > 40 && chartEl.clientHeight > 120) {
+      availW = chartEl.clientWidth;
+      availH = chartEl.clientHeight - 40;
+      if (availH < 160) {
+        availH = 160;
+      }
+      H = Math.round(W * availH / availW);
+      if (H < 200) {
+        H = 200;
+      }
+      if (H > 900) {
+        H = 900;
+      }
+    }
+    var padL = 34;
+    var padR = 16;
+    var padT = 18;
+    var padB = 32;
+    var nTurns = turns.length;
+    var minL = 0;
+    var maxL = state.startingLife || 40;
+    var t;
+    var p;
+    var life;
+    var span;
+    var plotW;
+    var plotH;
+    var svg = '';
+    var legend = '';
+    var pts;
+    var x;
+    var y;
+    var color;
+    var received;
+    var key;
+    var i;
+    var ev;
+    var label;
+    if (!nTurns || !players.length) {
+      $('life-chart').innerHTML = '<p class="sub">Todavía no hay vida registrada.</p>';
+      return;
+    }
+    for (t = 0; t < nTurns; t++) {
+      if (!turns[t]) {
+        continue;
+      }
+      for (p = 0; p < turns[t].length; p++) {
+        life = turns[t][p];
+        if (life < minL) {
+          minL = life;
+        }
+        if (life > maxL) {
+          maxL = life;
+        }
+      }
+    }
+    if (maxL === minL) {
+      maxL = minL + 1;
+    }
+    span = maxL - minL;
+    plotW = W - padL - padR;
+    plotH = H - padT - padB;
+    function chartX(index) {
+      if (nTurns === 1) {
+        return padL + plotW / 2;
+      }
+      return padL + plotW * index / (nTurns - 1);
+    }
+    function chartY(value) {
+      return padT + plotH * (1 - (value - minL) / span);
+    }
+    svg += '<svg class="life-svg" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">';
+    svg += '<line x1="' + padL + '" y1="' + padT + '" x2="' + padL + '" y2="' + (H - padB) + '" stroke="#444" stroke-width="1"/>';
+    svg += '<line x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '" stroke="#444" stroke-width="1"/>';
+    svg += '<text x="' + (padL - 6) + '" y="' + (chartY(maxL) + 4) + '" fill="#aaa" font-size="11" text-anchor="end">' + maxL + '</text>';
+    svg += '<text x="' + (padL - 6) + '" y="' + (chartY(minL) + 4) + '" fill="#aaa" font-size="11" text-anchor="end">' + minL + '</text>';
+    for (t = 0; t < nTurns; t++) {
+      x = chartX(t);
+      svg += '<text x="' + x + '" y="' + (H - 10) + '" fill="#aaa" font-size="11" text-anchor="middle">T' + (t + 1) + '</text>';
+    }
+    received = {};
+    for (i = 0; i < log.length; i++) {
+      ev = log[i];
+      key = ev.turn + ':' + ev.to;
+      received[key] = (received[key] || 0) + ev.amount;
+    }
+    for (p = 0; p < players.length; p++) {
+      color = players[p].color || '#ccc';
+      pts = '';
+      for (t = 0; t < nTurns; t++) {
+        if (!turns[t] || typeof turns[t][p] !== 'number') {
+          continue;
+        }
+        pts += (pts ? ' ' : '') + chartX(t) + ',' + chartY(turns[t][p]);
+      }
+      if (pts) {
+        svg += '<polyline fill="none" stroke="' + color + '" stroke-width="3" points="' + pts + '"/>';
+      }
+      for (t = 0; t < nTurns; t++) {
+        if (!turns[t] || typeof turns[t][p] !== 'number') {
+          continue;
+        }
+        x = chartX(t);
+        y = chartY(turns[t][p]);
+        svg += '<circle cx="' + x + '" cy="' + y + '" r="3.5" fill="' + color + '"/>';
+        label = received[(t + 1) + ':' + p];
+        if (label) {
+          svg += '<text x="' + x + '" y="' + (y - 8) + '" fill="#fff" font-size="11" font-weight="bold" text-anchor="middle">-' + label + '</text>';
+        }
+      }
+      legend += '<span class="chart-key"><span class="chart-swatch" style="background:' + color + '"></span>' +
+        escapeHtml(players[p].name) + '</span>';
+    }
+    svg += '</svg>';
+    $('life-chart').innerHTML = svg + '<div class="chart-legend">' + legend + '</div>';
+  }
+
   function bindPointer(root) {
     var startX = 0;
     var startY = 0;
@@ -1871,6 +2345,9 @@
     var moved = false;
     var hitEl = null;
     var touchMode = false;
+    var dragFrom = -1;
+    var strikeDrag = false;
+    var mouseDown = false;
 
     function clearLong() {
       if (longTimer) {
@@ -1895,6 +2372,50 @@
         return -1;
       }
       return parseInt(seat.getAttribute('data-index'), 10);
+    }
+
+    function dragSourceIndex(el) {
+      if (!state.started || !el) {
+        return -1;
+      }
+      if (closest(el, '.overlay') || closest(el, 'button') || closest(el, '.cmd-bar')) {
+        return -1;
+      }
+      return seatIndexFrom(el);
+    }
+
+    function trackDrag(clientX, clientY) {
+      var to;
+      if (dragFrom < 0) {
+        return;
+      }
+      to = seatAtPoint(clientX, clientY);
+      if (isNaN(to)) {
+        to = -1;
+      }
+      if (to >= 0 && to !== dragFrom) {
+        strikeDrag = true;
+      }
+      updateDragArrow(dragFrom, clientX, clientY, to);
+    }
+
+    function finishDrag(clientX, clientY) {
+      var to;
+      var from;
+      if (!strikeDrag) {
+        hideArrow();
+        dragFrom = -1;
+        return false;
+      }
+      from = dragFrom;
+      to = seatAtPoint(clientX, clientY);
+      hideArrow();
+      strikeDrag = false;
+      dragFrom = -1;
+      if (to >= 0 && to !== from) {
+        openStrike(from, to);
+      }
+      return true;
     }
 
     function handleTap(el, isHold) {
@@ -1933,7 +2454,7 @@
 
       overlay = closest(el, '.overlay');
       if (overlay && el === overlay) {
-        if (overlay.id === 'overlay-setup') {
+        if (overlay.id === 'overlay-setup' || overlay.id === 'overlay-first') {
           return;
         }
         if (overlay.id === 'overlay-player') {
@@ -2019,18 +2540,60 @@
         }
         return;
       }
-      if (act === 'turn-prev') {
-        if (state.turn > 1) {
-          state.turn -= 1;
+      if (act === 'first-random') {
+        state.active = Math.floor(Math.random() * state.players.length);
+        save();
+        closeOverlay('overlay-first');
+        renderAll();
+        return;
+      }
+      if (act === 'first-player') {
+        state.active = parseInt(el.getAttribute('data-player'), 10);
+        if (isNaN(state.active)) {
+          state.active = 0;
         }
         save();
-        renderToolbar();
+        closeOverlay('overlay-first');
+        renderAll();
+        return;
+      }
+      if (act === 'turn-prev') {
+        advanceTurn(-1);
         return;
       }
       if (act === 'turn-next') {
-        state.turn += 1;
-        save();
-        renderToolbar();
+        advanceTurn(1);
+        return;
+      }
+      if (act === 'chart') {
+        closeOverlay('overlay-menu');
+        openLifeChart();
+        return;
+      }
+      if (act === 'chart-close') {
+        closeOverlay('overlay-chart');
+        return;
+      }
+      if (act === 'strike-minus') {
+        if (ui.strikeAmount > 1) {
+          ui.strikeAmount -= 1;
+        }
+        $('strike-value').innerHTML = String(ui.strikeAmount);
+        return;
+      }
+      if (act === 'strike-plus') {
+        if (ui.strikeAmount < 99) {
+          ui.strikeAmount += 1;
+        }
+        $('strike-value').innerHTML = String(ui.strikeAmount);
+        return;
+      }
+      if (act === 'strike-cancel') {
+        closeOverlay('overlay-strike');
+        return;
+      }
+      if (act === 'strike-ok') {
+        applyStrike();
         return;
       }
       if (act === 'timer') {
@@ -2362,6 +2925,8 @@
       startEl = commanderControlAt(startX, startY) || e.target;
       longFired = false;
       moved = false;
+      strikeDrag = false;
+      dragFrom = dragSourceIndex(startEl);
       clearLong();
       hit = closest(startEl, '.cmd-bar') ? null : closest(startEl, '.hit');
       if (hit) {
@@ -2385,6 +2950,10 @@
         moved = true;
         clearLong();
         pressHit(null, false);
+        trackDrag(t.clientX, t.clientY);
+        if (strikeDrag && e.preventDefault) {
+          e.preventDefault();
+        }
       }
     });
 
@@ -2418,6 +2987,13 @@
       endY = t.clientY;
       dx = endX - startX;
       dy = endY - startY;
+      if (moved && finishDrag(endX, endY)) {
+        if (e.preventDefault) {
+          e.preventDefault();
+        }
+        ui.suppressClick = true;
+        return;
+      }
       seat = closest(startEl, '.seat');
       if (seat && moved && !closest(startEl, '.cmd-bar') && Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
         rot = parseInt(seat.getAttribute('data-rot'), 10) || 0;
@@ -2459,15 +3035,25 @@
 
     on(root, 'mousedown', function (e) {
       var hit;
+      if (e.button && e.button !== 0) {
+        return;
+      }
       if (touchMode || commanderControlAt(e.clientX, e.clientY)) {
         return;
       }
+      mouseDown = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      startEl = e.target;
+      moved = false;
+      strikeDrag = false;
+      dragFrom = dragSourceIndex(startEl);
+      longFired = false;
       hit = closest(e.target, '.hit');
       if (!hit) {
         return;
       }
       pressHit(hit, true);
-      longFired = false;
       longTimer = setTimeout(function () {
         longFired = true;
         pressHit(null, false);
@@ -2476,11 +3062,32 @@
       }, 420);
     });
 
-    on(root, 'mouseup', function () {
-      if (!touchMode) {
+    on(root, 'mousemove', function (e) {
+      if (!mouseDown || touchMode) {
+        return;
+      }
+      if (Math.abs(e.clientX - startX) > 14 || Math.abs(e.clientY - startY) > 14) {
+        moved = true;
         clearLong();
         pressHit(null, false);
+        trackDrag(e.clientX, e.clientY);
       }
+    });
+
+    on(root, 'mouseup', function (e) {
+      if (touchMode) {
+        return;
+      }
+      clearLong();
+      pressHit(null, false);
+      if (mouseDown && moved && finishDrag(e.clientX, e.clientY)) {
+        ui.suppressClick = true;
+      } else {
+        hideArrow();
+        dragFrom = -1;
+        strikeDrag = false;
+      }
+      mouseDown = false;
     });
   }
 
