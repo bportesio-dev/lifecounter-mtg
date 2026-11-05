@@ -72,6 +72,14 @@
     el.addEventListener(ev, fn, false);
   }
 
+  function onTouchMove(el, fn) {
+    try {
+      el.addEventListener('touchmove', fn, { passive: false });
+    } catch (err) {
+      el.addEventListener('touchmove', fn, false);
+    }
+  }
+
   function classText(el) {
     if (typeof el.className === 'string') {
       return el.className;
@@ -2940,8 +2948,11 @@
       }
     });
 
-    on(root, 'touchmove', function (e) {
+    onTouchMove(root, function (e) {
       var t;
+      if (!closest(startEl, '.modal') && e.preventDefault) {
+        e.preventDefault();
+      }
       if (!touchMode || e.touches.length !== 1) {
         return;
       }
@@ -2951,9 +2962,6 @@
         clearLong();
         pressHit(null, false);
         trackDrag(t.clientX, t.clientY);
-        if (strikeDrag && e.preventDefault) {
-          e.preventDefault();
-        }
       }
     });
 
@@ -3190,10 +3198,12 @@
         e.preventDefault();
       }
     });
-    on(document, 'touchmove', function (e) {
+    onTouchMove(document, function (e) {
       var t = e.target;
-      var scroll = closest(t, '.modal');
-      if (!scroll && e.touches.length > 1 && e.preventDefault) {
+      if (closest(t, '.modal') || closest(t, '.suggest-list')) {
+        return;
+      }
+      if (e.preventDefault) {
         e.preventDefault();
       }
     });

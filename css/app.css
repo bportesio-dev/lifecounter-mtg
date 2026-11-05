@@ -13,6 +13,9 @@ html, body {
   user-select: none;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   -webkit-text-size-adjust: 100%;
+  touch-action: none;
+  -ms-touch-action: none;
+  overscroll-behavior: none;
 }
 
 body {
@@ -60,6 +63,8 @@ input[type="text"] {
   top: 0;
   right: 0;
   bottom: 0;
+  touch-action: none;
+  -ms-touch-action: none;
 }
 
 .tb-btn,
@@ -1436,6 +1441,8 @@ body.is-fs #winner-banner {
   max-width: 92%;
   max-height: 86%;
   overflow: auto;
+  touch-action: pan-y;
+  -ms-touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
   background: #1c1c1c;
   border: 1px solid #c9a227;
