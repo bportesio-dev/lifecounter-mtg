@@ -308,12 +308,14 @@
     var idx = toneIndex(color);
     var glow = '0 0 12px rgba(' + p.r + ',' + p.g + ',' + p.b + ',0.45)';
     var fill = color;
+    var borderColor = 'rgba(7, 9, 13, 0.28)';
+    var frame = seat.getElementsByClassName('seat-frame')[0];
     clearTone(seat);
     if (idx !== -1) {
       addClass(seat, 'tone-c' + idx);
       toggleClass(seat, 'ink-dark', false);
       if (isRedColor(color)) {
-        panel.style.border = '1px solid #9f3736';
+        borderColor = '#9f3736';
         glow = '0 0 12px rgba(159, 55, 54, 0.45)';
         if (active) {
           fill = '#542226';
@@ -322,18 +324,24 @@
         }
       } else if (active) {
         fill = isGreenColor(color) ? '#0f2422' : scaleHex(color, 0.34);
-        panel.style.border = '1px solid ' + scaleHex(color, 0.62);
+        borderColor = scaleHex(color, 0.62);
       } else {
         fill = '#0e0e17';
-        panel.style.border = '1px solid ' + scaleHex(color, 0.62);
+        borderColor = scaleHex(color, 0.62);
       }
     } else {
-      panel.style.border = '1px solid rgba(7, 9, 13, 0.28)';
       toggleClass(seat, 'ink-dark', inkDark(color));
     }
     panel.style.backgroundColor = fill;
-    seat.style.webkitBoxShadow = glow;
-    seat.style.boxShadow = glow;
+    panel.style.border = '0';
+    seat.style.backgroundColor = 'transparent';
+    if (frame) {
+      frame.style.backgroundColor = borderColor;
+      frame.style.webkitFilter = 'drop-shadow(' + glow + ')';
+      frame.style.filter = 'drop-shadow(' + glow + ')';
+    }
+    seat.style.webkitBoxShadow = 'none';
+    seat.style.boxShadow = 'none';
   }
 
   function fixPlayerColors() {
@@ -1074,26 +1082,45 @@
 
   function applySeatBox(seat, box, boardW) {
     var panel = seat.getElementsByClassName('panel')[0];
+    var frame = seat.getElementsByClassName('seat-frame')[0];
     var rot = box.rot || 0;
     var cx = box.x + box.w / 2;
     var onRight = boardW && cx > boardW / 2 + 1;
     var onLeft = boardW && cx < boardW / 2 - 1;
     var menuRight = false;
+    var edge = 1;
+    var fw;
+    var fh;
+    var pw;
+    var ph;
+    var spin;
     seat.style.left = box.x + 'px';
     seat.style.top = box.y + 'px';
     seat.style.width = box.w + 'px';
     seat.style.height = box.h + 'px';
     if (rot === 90 || rot === 270) {
-      panel.style.width = box.h + 'px';
-      panel.style.height = box.w + 'px';
-      panel.style.left = ((box.w - box.h) / 2) + 'px';
-      panel.style.top = ((box.h - box.w) / 2) + 'px';
+      fw = box.h;
+      fh = box.w;
     } else {
-      panel.style.width = '100%';
-      panel.style.height = '100%';
-      panel.style.left = '0px';
-      panel.style.top = '0px';
+      fw = box.w;
+      fh = box.h;
     }
+    pw = fw - edge * 2;
+    ph = fh - edge * 2;
+    if (frame) {
+      frame.style.width = fw + 'px';
+      frame.style.height = fh + 'px';
+      frame.style.left = ((box.w - fw) / 2) + 'px';
+      frame.style.top = ((box.h - fh) / 2) + 'px';
+      frame.style.webkitClipPath = 'none';
+      frame.style.clipPath = 'none';
+    }
+    panel.style.width = pw + 'px';
+    panel.style.height = ph + 'px';
+    panel.style.left = ((box.w - pw) / 2) + 'px';
+    panel.style.top = ((box.h - ph) / 2) + 'px';
+    panel.style.webkitClipPath = 'none';
+    panel.style.clipPath = 'none';
     if (onRight) {
       menuRight = rot !== 180;
     } else if (onLeft) {
@@ -1102,17 +1129,29 @@
     toggleClass(seat, 'menu-right', menuRight);
     toggleClass(seat, 'hist-right', seat.getAttribute('data-index') === '1' || seat.getAttribute('data-index') === '2');
     if (rot === 180) {
-      panel.style.webkitTransform = 'rotate(180deg)';
-      panel.style.transform = 'rotate(180deg)';
+      spin = 'rotate(180deg)';
       addClass(panel, 'rot-180');
+      if (frame) {
+        addClass(frame, 'rot-180');
+      }
     } else if (rot) {
-      panel.style.webkitTransform = 'rotate(' + rot + 'deg)';
-      panel.style.transform = 'rotate(' + rot + 'deg)';
+      spin = 'rotate(' + rot + 'deg)';
       removeClass(panel, 'rot-180');
+      if (frame) {
+        removeClass(frame, 'rot-180');
+      }
     } else {
-      panel.style.webkitTransform = 'none';
-      panel.style.transform = 'none';
+      spin = 'none';
       removeClass(panel, 'rot-180');
+      if (frame) {
+        removeClass(frame, 'rot-180');
+      }
+    }
+    panel.style.webkitTransform = spin;
+    panel.style.transform = spin;
+    if (frame) {
+      frame.style.webkitTransform = spin;
+      frame.style.transform = spin;
     }
     toggleClass(seat, 'is-flip', rot === 180);
     seat.setAttribute('data-rot', String(rot));
@@ -1120,6 +1159,7 @@
 
   function createSeat(index) {
     var seat = document.createElement('div');
+    var frame = document.createElement('div');
     var panel = document.createElement('div');
     var hitM = document.createElement('div');
     var hitP = document.createElement('div');
@@ -1144,6 +1184,7 @@
 
     seat.className = 'seat';
     seat.setAttribute('data-index', String(index));
+    frame.className = 'seat-frame';
     panel.className = 'panel';
     hitM.className = 'hit hit-minus';
     hitP.className = 'hit hit-plus';
@@ -1198,6 +1239,7 @@
     panel.appendChild(dead);
     panel.appendChild(cmdRow);
     panel.appendChild(nextBtn);
+    seat.appendChild(frame);
     seat.appendChild(panel);
     return seat;
   }
@@ -1484,6 +1526,7 @@
     var views = viewList(index);
     var v = views[p.view] || views[0];
     var panel = seat.getElementsByClassName('panel')[0];
+    var frame = seat.getElementsByClassName('seat-frame')[0];
     var lifeEl = seat.getElementsByClassName('life')[0];
     var deltaEl = seat.getElementsByClassName('delta')[0];
     var histEl = seat.getElementsByClassName('hist')[0];
@@ -1580,6 +1623,11 @@
       addClass(panel, 'rot-180');
       panel.style.webkitTransform = 'rotate(180deg)';
       panel.style.transform = 'rotate(180deg)';
+      if (frame) {
+        addClass(frame, 'rot-180');
+        frame.style.webkitTransform = 'rotate(180deg)';
+        frame.style.transform = 'rotate(180deg)';
+      }
     }
 
     boxW = seat.clientWidth;
@@ -3261,10 +3309,14 @@
         if (!b) {
           continue;
         }
+        var seatColor = COLORS[j % COLORS.length];
+        var seatFill = isRedColor(seatColor) ? '#542226' : (isGreenColor(seatColor) ? '#0f2422' : scaleHex(seatColor, 0.34));
+        var seatInk = isRedColor(seatColor) ? '#f75049' : seatColor;
+        var seatEdge = isRedColor(seatColor) ? '#9f3736' : scaleHex(seatColor, 0.62);
         preview += '<span class="mini-seat" style="left:' + b.x + 'px;top:' + b.y +
           'px;width:' + b.w + 'px;height:' + b.h + 'px;line-height:' + b.h +
-          'px;background:#0e0e17;color:' + (isRedColor(COLORS[j % COLORS.length]) ? '#f75049' : COLORS[j % COLORS.length]) +
-          ';border:1px solid ' + (isRedColor(COLORS[j % COLORS.length]) ? '#9f3736' : scaleHex(COLORS[j % COLORS.length], 0.62)) +
+          'px;background:' + seatFill + ';color:' + seatInk +
+          ';border:1px solid ' + seatEdge +
           '">' + (j + 1) + '</span>';
       }
       html += '<button type="button" class="layout-card' + (opt.id === state.layoutId ? ' selected' : '') +
