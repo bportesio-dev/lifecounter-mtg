@@ -540,7 +540,6 @@
     var i;
     var n;
     var rank;
-    var arrow;
     var text;
     if (!list || !list.length) {
       return '';
@@ -548,10 +547,8 @@
     for (i = list.length - 1; i >= 0; i--) {
       n = list[i];
       rank = list.length - 1 - i;
-      arrow = n < 0 ? '&#9660;' : '&#9650;';
       text = (n > 0 ? '+' : '') + n;
-      html += '<span class="hist-item hist-z' + rank + ' ' + (n < 0 ? 'hist-down' : 'hist-up') + '">' +
-        '<span class="hist-arrow">' + arrow + '</span>' + text + '</span>';
+      html += '<span class="hist-item hist-z' + rank + ' ' + (n < 0 ? 'hist-down' : 'hist-up') + '">' + text + '</span>';
     }
     return html;
   }
@@ -2310,6 +2307,7 @@
   function hideArrow() {
     var badge = $('drag-badge');
     var reticle = $('drag-reticle');
+    sfxDragEnd();
     removeClass($('drag-arrow'), 'show');
     if (badge) {
       removeClass(badge, 'show');
@@ -2474,6 +2472,7 @@
         y2 -= dy / len * 48;
       }
     }
+    sfxDragTarget(locked ? toIndex : -1);
     showArrow(x1, y1, x2, y2, tx, ty, fromColor, toColor, locked, fromIndex, toIndex);
   }
 
@@ -2496,8 +2495,11 @@
     ui.strikeFrom = fromIndex;
     ui.strikeTo = toIndex;
     ui.strikeAmount = 1;
-    $('strike-title').innerHTML = 'Enlace de combate';
-    $('strike-sub').innerHTML = escapeHtml(a.name) + ' &rarr; ' + escapeHtml(b.name);
+    $('strike-title').innerHTML = 'Enlace de combate táctico';
+    $('strike-from').innerHTML = escapeHtml(a.name);
+    $('strike-from').style.color = a.color || '#10ffa0';
+    $('strike-to').innerHTML = escapeHtml(b.name);
+    $('strike-to').style.color = b.color || '#ff2a5f';
     openOverlay('overlay-strike');
     paintStrikeReadout();
   }
@@ -2513,6 +2515,7 @@
       amount = 1;
     }
     defender = state.players[ui.strikeTo];
+    sfxImpact();
     defender.life -= amount;
     if (!state.damageLog) {
       state.damageLog = [];
@@ -2663,6 +2666,108 @@
     $('life-chart').innerHTML = svg + '<div class="chart-legend">' + legend + '</div>';
   }
 
+  var sfxAim = null;
+  var sfxShot = null;
+  var sfxLockIndex = -1;
+
+  function sfxClip(src) {
+    var audio;
+    try {
+      audio = new Audio(src);
+      audio.preload = 'auto';
+      return audio;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function sfxEnsure() {
+    if (!sfxAim) {
+      sfxAim = sfxClip('assets/recarga.mp3');
+    }
+    if (!sfxShot) {
+      sfxShot = sfxClip('assets/shoot.mp3');
+    }
+  }
+
+  function sfxPrime(audio) {
+    var played;
+    if (!audio || audio._sfxReady) {
+      return;
+    }
+    audio.volume = 0;
+    try {
+      played = audio.play();
+    } catch (err) {
+      audio.volume = 1;
+      return;
+    }
+    audio._sfxReady = true;
+    if (played && played.then) {
+      played.then(function () {
+        audio.pause();
+        try {
+          audio.currentTime = 0;
+        } catch (errSeek) {}
+        audio.volume = 1;
+      }, function () {
+        audio._sfxReady = false;
+        audio.volume = 1;
+      });
+      return;
+    }
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch (errPause) {}
+    audio.volume = 1;
+  }
+
+  function sfxUnlock() {
+    sfxEnsure();
+    sfxPrime(sfxAim);
+    sfxPrime(sfxShot);
+  }
+
+  function sfxPlay(audio) {
+    var played;
+    if (!audio) {
+      return;
+    }
+    audio.volume = 1;
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch (errSeek) {}
+    try {
+      played = audio.play();
+      if (played && played.catch) {
+        played.catch(function () {});
+      }
+    } catch (errPlay) {}
+  }
+
+  function sfxDragTarget(toIndex) {
+    if (toIndex >= 0 && toIndex !== sfxLockIndex) {
+      sfxLockIndex = toIndex;
+      sfxEnsure();
+      sfxPlay(sfxAim);
+      return;
+    }
+    if (toIndex < 0) {
+      sfxLockIndex = -1;
+    }
+  }
+
+  function sfxDragEnd() {
+    sfxLockIndex = -1;
+  }
+
+  function sfxImpact() {
+    sfxEnsure();
+    sfxPlay(sfxShot);
+  }
+
   function bindPointer(root) {
     var startX = 0;
     var startY = 0;
@@ -2782,6 +2887,16 @@
       overlay = closest(el, '.overlay');
       if (overlay && el === overlay) {
         if (overlay.id === 'overlay-setup' || overlay.id === 'overlay-first') {
+          return;
+        }
+        if (overlay.id === 'overlay-strike') {
+          cancelTarget = ui.strikeTo;
+          closeOverlay('overlay-strike');
+          ui.strikeFrom = -1;
+          ui.strikeTo = -1;
+          if (cancelTarget >= 0 && state.players[cancelTarget]) {
+            updateSeat(cancelTarget);
+          }
           return;
         }
         if (overlay.id === 'overlay-player') {
@@ -3260,6 +3375,9 @@
       moved = false;
       strikeDrag = false;
       dragFrom = dragSourceIndex(startEl);
+      if (dragFrom >= 0) {
+        sfxUnlock();
+      }
       clearLong();
       hit = closest(startEl, '.cmd-bar') ? null : closest(startEl, '.hit');
       if (hit) {
@@ -3381,6 +3499,9 @@
       moved = false;
       strikeDrag = false;
       dragFrom = dragSourceIndex(startEl);
+      if (dragFrom >= 0) {
+        sfxUnlock();
+      }
       longFired = false;
       hit = closest(e.target, '.hit');
       if (!hit) {

@@ -3,9 +3,11 @@
     {
       "name": "Default",
       "files": [
-        "stitch_cyberpunk_mtg_life_counter/mtg_commander_cyberpunk_table_hud/code.html",
-        "stitch_cyberpunk_mtg_life_counter/tactical_drag_laser_combat_lock/code.html",
-        "stitch_cyberpunk_mtg_life_counter/tactical_setup_match_calibration/code.html"
+        "css/app.css",
+        "index.html",
+        "js/app.js",
+        "assets/recarga.mp3",
+        "assets/shoot.mp3"
       ]
     }
   ],
