@@ -3,16 +3,16 @@
 
   var STORAGE_KEY = 'mtgLifeCounter.v1';
   var COLORS = [
-    '#176842',
-    '#246CD8',
-    '#9C30F0',
-    '#FC5448',
-    '#D8CCCC',
-    '#00FCE4',
-    '#F0B43C',
-    '#FC8484',
-    '#FC9030',
-    '#3C9CA8'
+    '#10ffa0',
+    '#3aa0ff',
+    '#b845ff',
+    '#ff2a5f',
+    '#e8eef6',
+    '#00f0ff',
+    '#ffb000',
+    '#ff6b9a',
+    '#ff7a18',
+    '#3dffe0'
   ];
   var LEGACY_COLORS = [
     '#1f7d3a',
@@ -254,23 +254,8 @@
     };
   }
 
-  function channelLinear(v) {
-    v = v / 255;
-    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-  }
-
-  function inkDark(color) {
-    var p = hexParts(color);
-    var L = 0.2126 * channelLinear(p.r) + 0.7152 * channelLinear(p.g) + 0.0722 * channelLinear(p.b);
-    return L > 0.18;
-  }
-
   function isRedColor(color) {
     return String(color || '').toLowerCase() === '#fc5448';
-  }
-
-  function isGreenColor(color) {
-    return String(color || '').toLowerCase() === '#176842';
   }
 
   function accentOf(color) {
@@ -291,11 +276,6 @@
     return -1;
   }
 
-  function scaleHex(color, amount) {
-    var p = hexParts(color);
-    return 'rgb(' + Math.round(p.r * amount) + ',' + Math.round(p.g * amount) + ',' + Math.round(p.b * amount) + ')';
-  }
-
   function clearTone(seat) {
     var i;
     for (i = 0; i < COLORS.length; i++) {
@@ -306,42 +286,29 @@
   function paintSeat(seat, panel, color, active) {
     var p = hexParts(color);
     var idx = toneIndex(color);
-    var glow = '0 0 12px rgba(' + p.r + ',' + p.g + ',' + p.b + ',0.45)';
-    var fill = color;
-    var borderColor = 'rgba(7, 9, 13, 0.28)';
     var frame = seat.getElementsByClassName('seat-frame')[0];
+    var alpha = active ? '0.88' : '0.42';
+    var glow = active ? '0.18' : '0.08';
+    var width = active ? '2px' : '1px';
     clearTone(seat);
+    toggleClass(seat, 'ink-dark', false);
     if (idx !== -1) {
       addClass(seat, 'tone-c' + idx);
-      toggleClass(seat, 'ink-dark', false);
-      if (isRedColor(color)) {
-        borderColor = '#9f3736';
-        glow = '0 0 12px rgba(159, 55, 54, 0.45)';
-        if (active) {
-          fill = '#542226';
-        } else {
-          fill = '#0e0e17';
-        }
-      } else if (active) {
-        fill = isGreenColor(color) ? '#0f2422' : scaleHex(color, 0.34);
-        borderColor = scaleHex(color, 0.62);
-      } else {
-        fill = '#0e0e17';
-        borderColor = scaleHex(color, 0.62);
-      }
-    } else {
-      toggleClass(seat, 'ink-dark', inkDark(color));
     }
-    panel.style.backgroundColor = fill;
-    panel.style.border = '0';
+    seat.style.setProperty('--seat-accent', color || '#00f0ff');
+    seat.style.setProperty('--seat-rgb', p.r + ',' + p.g + ',' + p.b);
+    panel.style.backgroundColor = '#0c101a';
+    panel.style.border = width + ' solid rgba(' + p.r + ',' + p.g + ',' + p.b + ',' + alpha + ')';
+    panel.style.borderRadius = '8px';
+    panel.style.boxShadow = 'inset 0 0 30px rgba(' + p.r + ',' + p.g + ',' + p.b + ',' + glow + '), 0 0 16px rgba(' + p.r + ',' + p.g + ',' + p.b + ',' + (active ? '0.28' : '0.12') + ')';
     seat.style.backgroundColor = 'transparent';
-    if (frame) {
-      frame.style.backgroundColor = borderColor;
-      frame.style.webkitFilter = 'drop-shadow(' + glow + ')';
-      frame.style.filter = 'drop-shadow(' + glow + ')';
-    }
     seat.style.webkitBoxShadow = 'none';
     seat.style.boxShadow = 'none';
+    if (frame) {
+      frame.style.backgroundColor = 'transparent';
+      frame.style.webkitFilter = 'none';
+      frame.style.filter = 'none';
+    }
   }
 
   function fixPlayerColors() {
@@ -572,17 +539,19 @@
     var html = '';
     var i;
     var n;
-    var abs;
     var rank;
+    var arrow;
+    var text;
     if (!list || !list.length) {
       return '';
     }
-    for (i = 0; i < list.length; i++) {
+    for (i = list.length - 1; i >= 0; i--) {
       n = list[i];
-      abs = n < 0 ? -n : n;
       rank = list.length - 1 - i;
+      arrow = n < 0 ? '&#9660;' : '&#9650;';
+      text = (n > 0 ? '+' : '') + n;
       html += '<span class="hist-item hist-z' + rank + ' ' + (n < 0 ? 'hist-down' : 'hist-up') + '">' +
-        abs + '</span><br>';
+        '<span class="hist-arrow">' + arrow + '</span>' + text + '</span>';
     }
     return html;
   }
@@ -1040,7 +1009,7 @@
   }
 
   function layoutBoxesFor(n, W, H, layoutId) {
-    var gap = 2;
+    var gap = 6;
     var id = layoutId || 'face';
     var around;
     var rotsTable = { n: 180, e: 270, s: 0, w: 90 };
@@ -1088,7 +1057,7 @@
     var onRight = boardW && cx > boardW / 2 + 1;
     var onLeft = boardW && cx < boardW / 2 - 1;
     var menuRight = false;
-    var edge = 1;
+    var edge = 0;
     var fw;
     var fh;
     var pw;
@@ -1181,6 +1150,10 @@
     var dead = document.createElement('div');
     var skull = document.createElement('span');
     var nextBtn = document.createElement('button');
+    var integrity = document.createElement('div');
+    var integrityTrack = document.createElement('div');
+    var integrityFill = document.createElement('div');
+    var integrityLabel = document.createElement('span');
 
     seat.className = 'seat';
     seat.setAttribute('data-index', String(index));
@@ -1208,6 +1181,13 @@
     delta.className = 'delta';
     hist.className = 'hist';
     caption.className = 'life-caption';
+    integrity.className = 'integrity';
+    integrityTrack.className = 'integrity-track';
+    integrityFill.className = 'integrity-fill';
+    integrityLabel.className = 'integrity-label';
+    integrityTrack.appendChild(integrityFill);
+    integrity.appendChild(integrityTrack);
+    integrity.appendChild(integrityLabel);
     cmdRow.className = 'cmd-row';
     artImg.className = 'panel-art';
     artImg.alt = '';
@@ -1230,6 +1210,7 @@
     hud.appendChild(delta);
     hud.appendChild(hist);
     hud.appendChild(caption);
+    hud.appendChild(integrity);
     hud.appendChild(bot);
     panel.appendChild(artImg);
     panel.appendChild(shade);
@@ -1545,9 +1526,19 @@
     var histBook;
     var htmlBadges;
     var htmlStats;
+    var integrityEl;
+    var integrityFill;
+    var integrityLabel;
+    var startLife;
+    var pctLife;
+    var barLife;
+    var overLife;
+    var pending;
+    var nextLife;
 
     paintSeat(seat, panel, (v.type === 'cmd' && state.players[v.src]) ? state.players[v.src].color : p.color, index === state.active);
-    panel.style.backgroundImage = 'none';
+    panel.style.backgroundImage = '';
+    panel.style.backgroundSize = '';
     if (v.type !== 'cmd' && p.bgArt && artEl) {
       src = toArtCrop(p.bgArt);
       artEl.setAttribute('referrerpolicy', 'no-referrer');
@@ -1604,8 +1595,52 @@
       label = 'Daño comandante ' + escapeHtml(String(v.label || '').replace(/^Jugador/i, 'jugador'));
       addClass(panel, 'cmd-mode');
     }
-    lifeEl.innerHTML = String(value);
+    pending = v.type === 'life' && ui.strikeTo === index && hasClass($('overlay-strike'), 'is-open');
+    toggleClass(seat, 'strike-pending', pending);
+    if (pending) {
+      nextLife = p.life - ui.strikeAmount;
+      lifeEl.innerHTML = '<span class="life-old">' + p.life + '</span><span class="life-next">' + nextLife + '</span>';
+    } else {
+      lifeEl.innerHTML = String(value);
+    }
     caption.innerHTML = label;
+    integrityEl = seat.getElementsByClassName('integrity')[0];
+    integrityFill = seat.getElementsByClassName('integrity-fill')[0];
+    integrityLabel = seat.getElementsByClassName('integrity-label')[0];
+    if (integrityEl && integrityFill && integrityLabel) {
+      if (v.type === 'life') {
+        startLife = state.startingLife || 40;
+        pctLife = startLife ? Math.round((p.life / startLife) * 100) : 100;
+        barLife = pctLife;
+        overLife = p.life - startLife;
+        if (barLife < 0) {
+          barLife = 0;
+        }
+        if (barLife > 100) {
+          barLife = 100;
+        }
+        if (pending) {
+          barLife = startLife ? Math.round((nextLife / startLife) * 100) : barLife;
+          if (barLife < 0) {
+            barLife = 0;
+          }
+          if (barLife > 100) {
+            barLife = 100;
+          }
+        }
+        integrityFill.style.width = barLife + '%';
+        if (pending) {
+          integrityLabel.innerHTML = 'DAÑO INMINENTE // -' + ui.strikeAmount + ' HP';
+        } else if (overLife > 0) {
+          integrityLabel.innerHTML = 'OVERCLOCKED // +' + overLife;
+        } else {
+          integrityLabel.innerHTML = 'INTEGRITY // ' + pctLife + '%';
+        }
+        removeClass(integrityEl, 'hidden');
+      } else {
+        addClass(integrityEl, 'hidden');
+      }
+    }
     deltaKey = v.type === 'life' ? 'life' : v.key;
     slot = ui.deltas[index];
     if (deltaEl) {
@@ -2260,42 +2295,81 @@
     return parseInt(seat.getAttribute('data-index'), 10);
   }
 
-  function markStrikeTarget(index) {
+  function markStrikeTarget(fromIndex, toIndex) {
     var seats = $('board').getElementsByClassName('seat');
     var i;
+    var dragging = fromIndex >= 0;
+    var locked = dragging && toIndex >= 0 && toIndex !== fromIndex;
     for (i = 0; i < seats.length; i++) {
-      toggleClass(seats[i], 'strike-target', i === index);
+      toggleClass(seats[i], 'strike-source', dragging && i === fromIndex);
+      toggleClass(seats[i], 'strike-target', locked && i === toIndex);
+      toggleClass(seats[i], 'strike-dim', dragging && i !== fromIndex && !(locked && i === toIndex));
     }
   }
 
   function hideArrow() {
+    var badge = $('drag-badge');
+    var reticle = $('drag-reticle');
     removeClass($('drag-arrow'), 'show');
-    markStrikeTarget(-1);
+    if (badge) {
+      removeClass(badge, 'show');
+    }
+  if (reticle) {
+    reticle.setAttribute('display', 'none');
+    reticle.style.display = 'none';
+  }
+    markStrikeTarget(-1, -1);
   }
 
-  function showArrow(x1, y1, x2, y2) {
+  function clampNum(n, min, max) {
+    if (n < min) {
+      return min;
+    }
+    if (n > max) {
+      return max;
+    }
+    return n;
+  }
+
+  function showArrow(x1, y1, x2, y2, tx, ty, fromColor, toColor, locked, fromIndex, toIndex) {
     var svg = $('drag-arrow');
     var board = $('board');
+    var grad = $('laser-grad');
+    var source = $('drag-source');
+    var reticle = $('drag-reticle');
+    var badge = $('drag-badge');
+    var ring = $('drag-source-ring');
+    var core = $('drag-source-core');
     var dx = x2 - x1;
     var dy = y2 - y1;
     var len = Math.sqrt(dx * dx + dy * dy);
     var ux;
     var uy;
-    var px;
-    var py;
-    var s = 16;
-    var w = 8;
+    var mx;
+    var my;
+    var fromPlayer;
+    var toPlayer;
     if (!svg || len < 8) {
       return;
     }
     ux = dx / len;
     uy = dy / len;
-    px = -uy;
-    py = ux;
     svg.setAttribute('width', String(board.clientWidth));
     svg.setAttribute('height', String(board.clientHeight));
     svg.style.width = board.clientWidth + 'px';
     svg.style.height = board.clientHeight + 'px';
+    if (grad) {
+      grad.setAttribute('x1', String(x1));
+      grad.setAttribute('y1', String(y1));
+      grad.setAttribute('x2', String(x2));
+      grad.setAttribute('y2', String(y2));
+    }
+    if ($('laser-stop-0')) {
+      $('laser-stop-0').setAttribute('stop-color', fromColor);
+    }
+    if ($('laser-stop-2')) {
+      $('laser-stop-2').setAttribute('stop-color', locked ? toColor : '#00f0ff');
+    }
     $('drag-arrow-shadow').setAttribute('x1', String(x1));
     $('drag-arrow-shadow').setAttribute('y1', String(y1));
     $('drag-arrow-shadow').setAttribute('x2', String(x2));
@@ -2304,52 +2378,113 @@
     $('drag-arrow-line').setAttribute('y1', String(y1));
     $('drag-arrow-line').setAttribute('x2', String(x2));
     $('drag-arrow-line').setAttribute('y2', String(y2));
-    $('drag-arrow-head').setAttribute('points',
-      x2 + ',' + y2 + ' ' +
-      (x2 - ux * s + px * w) + ',' + (y2 - uy * s + py * w) + ' ' +
-      (x2 - ux * s - px * w) + ',' + (y2 - uy * s - py * w));
+    if (source) {
+      source.setAttribute('transform', 'translate(' + x1 + ' ' + y1 + ')');
+    }
+    if (ring) {
+      ring.setAttribute('stroke', fromColor);
+    }
+    if (core) {
+      core.setAttribute('fill', fromColor);
+    }
+    if (reticle) {
+      if (locked) {
+        reticle.setAttribute('transform', 'translate(' + tx + ' ' + ty + ')');
+        reticle.removeAttribute('display');
+        reticle.style.display = '';
+      } else {
+        reticle.setAttribute('display', 'none');
+        reticle.style.display = 'none';
+      }
+    }
+    if (badge) {
+      if (locked) {
+        mx = (x1 + tx) / 2 - uy * 36;
+        my = (y1 + ty) / 2 + ux * 36;
+        mx = clampNum(mx, 120, board.clientWidth - 120);
+        my = clampNum(my, 46, board.clientHeight - 46);
+        fromPlayer = state.players[fromIndex];
+        toPlayer = state.players[toIndex];
+        $('drag-from-name').innerHTML = escapeHtml(fromPlayer ? fromPlayer.name : '');
+        $('drag-from-name').style.color = fromColor;
+        $('drag-to-name').innerHTML = escapeHtml(toPlayer ? toPlayer.name : '');
+        $('drag-to-name').style.color = toColor;
+        badge.style.left = mx + 'px';
+        badge.style.top = my + 'px';
+        addClass(badge, 'show');
+      } else {
+        removeClass(badge, 'show');
+      }
+    }
     addClass(svg, 'show');
   }
 
   function updateDragArrow(fromIndex, clientX, clientY, toIndex) {
     var from = seatCenter(fromIndex);
     var board;
-    var to;
+    var to = null;
+    var locked;
     var x2;
     var y2;
+    var tx = 0;
+    var ty = 0;
     var dx;
     var dy;
     var len;
     var x1;
     var y1;
+    var fromColor;
+    var toColor;
     if (!from) {
       return;
     }
     board = $('board').getBoundingClientRect();
-    if (toIndex >= 0 && toIndex !== fromIndex) {
+    locked = toIndex >= 0 && toIndex !== fromIndex;
+    fromColor = (state.players[fromIndex] && state.players[fromIndex].color) || '#10ffa0';
+    if (locked) {
       to = seatCenter(toIndex);
-      x2 = to.x;
-      y2 = to.y;
-      markStrikeTarget(toIndex);
+      if (!to) {
+        locked = false;
+      }
+    }
+    if (locked && to) {
+      tx = to.x;
+      ty = to.y;
+      x2 = tx;
+      y2 = ty;
+      toColor = (state.players[toIndex] && state.players[toIndex].color) || '#ff2a5f';
+      markStrikeTarget(fromIndex, toIndex);
     } else {
       x2 = clientX - board.left;
       y2 = clientY - board.top;
-      markStrikeTarget(-1);
+      toColor = '#00f0ff';
+      locked = false;
+      markStrikeTarget(fromIndex, -1);
     }
     dx = x2 - from.x;
     dy = y2 - from.y;
     len = Math.sqrt(dx * dx + dy * dy) || 1;
     x1 = from.x;
     y1 = from.y;
-    if (len > 56) {
-      x1 += dx / len * 42;
-      y1 += dy / len * 42;
-      if (toIndex >= 0 && toIndex !== fromIndex) {
-        x2 -= dx / len * 42;
-        y2 -= dy / len * 42;
+    if (len > 70) {
+      x1 += dx / len * 28;
+      y1 += dy / len * 28;
+      if (locked) {
+        x2 -= dx / len * 48;
+        y2 -= dy / len * 48;
       }
     }
-    showArrow(x1, y1, x2, y2);
+    showArrow(x1, y1, x2, y2, tx, ty, fromColor, toColor, locked, fromIndex, toIndex);
+  }
+
+  function paintStrikeReadout() {
+    var target = ui.strikeTo;
+    if ($('strike-value')) {
+      $('strike-value').innerHTML = '-' + ui.strikeAmount + ' HP';
+    }
+    if (target >= 0 && state.players[target]) {
+      updateSeat(target);
+    }
   }
 
   function openStrike(fromIndex, toIndex) {
@@ -2361,10 +2496,10 @@
     ui.strikeFrom = fromIndex;
     ui.strikeTo = toIndex;
     ui.strikeAmount = 1;
-    $('strike-title').innerHTML = 'Daño normal';
-    $('strike-sub').innerHTML = escapeHtml(a.name) + ' daña a ' + escapeHtml(b.name);
-    $('strike-value').innerHTML = '1';
+    $('strike-title').innerHTML = 'Enlace de combate';
+    $('strike-sub').innerHTML = escapeHtml(a.name) + ' &rarr; ' + escapeHtml(b.name);
     openOverlay('overlay-strike');
+    paintStrikeReadout();
   }
 
   function applyStrike() {
@@ -2392,6 +2527,8 @@
     save();
     closeOverlay('overlay-strike');
     bumpDelta(ui.strikeTo, -amount, 'life');
+    ui.strikeFrom = -1;
+    ui.strikeTo = -1;
     renderAll();
   }
 
@@ -2768,18 +2905,24 @@
         if (ui.strikeAmount > 1) {
           ui.strikeAmount -= 1;
         }
-        $('strike-value').innerHTML = String(ui.strikeAmount);
+        paintStrikeReadout();
         return;
       }
       if (act === 'strike-plus') {
         if (ui.strikeAmount < 99) {
           ui.strikeAmount += 1;
         }
-        $('strike-value').innerHTML = String(ui.strikeAmount);
+        paintStrikeReadout();
         return;
       }
       if (act === 'strike-cancel') {
+        var cancelTarget = ui.strikeTo;
         closeOverlay('overlay-strike');
+        ui.strikeFrom = -1;
+        ui.strikeTo = -1;
+        if (cancelTarget >= 0 && state.players[cancelTarget]) {
+          updateSeat(cancelTarget);
+        }
         return;
       }
       if (act === 'strike-ok') {
@@ -3310,13 +3453,12 @@
           continue;
         }
         var seatColor = COLORS[j % COLORS.length];
-        var seatFill = isRedColor(seatColor) ? '#542226' : (isGreenColor(seatColor) ? '#0f2422' : scaleHex(seatColor, 0.34));
-        var seatInk = isRedColor(seatColor) ? '#f75049' : seatColor;
-        var seatEdge = isRedColor(seatColor) ? '#9f3736' : scaleHex(seatColor, 0.62);
+        var seatParts = hexParts(seatColor);
         preview += '<span class="mini-seat" style="left:' + b.x + 'px;top:' + b.y +
           'px;width:' + b.w + 'px;height:' + b.h + 'px;line-height:' + b.h +
-          'px;background:' + seatFill + ';color:' + seatInk +
-          ';border:1px solid ' + seatEdge +
+          'px;background:#0c101a;color:' + seatColor +
+          ';border:1px solid rgba(' + seatParts.r + ',' + seatParts.g + ',' + seatParts.b + ',0.7)' +
+          ';box-shadow:inset 0 0 8px rgba(' + seatParts.r + ',' + seatParts.g + ',' + seatParts.b + ',0.35)' +
           '">' + (j + 1) + '</span>';
       }
       html += '<button type="button" class="layout-card' + (opt.id === state.layoutId ? ' selected' : '') +
@@ -3343,6 +3485,9 @@
         '" data-count="' + n + '">' + n + '</button>';
     }
     row.innerHTML = html;
+    if ($('count-meta')) {
+      $('count-meta').innerHTML = 'Seleccionado: ' + state.playerCount;
+    }
     markLifeChoices();
     renderLayoutPicker('layout-row');
     if (state.started && state.players.length) {

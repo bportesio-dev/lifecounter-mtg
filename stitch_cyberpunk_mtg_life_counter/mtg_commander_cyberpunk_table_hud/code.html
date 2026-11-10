@@ -1,0 +1,475 @@
+<!DOCTYPE html><html lang="es" class="h-full bg-chassis-void"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cyberpunk MTG Life Counter - 4 Jugadores</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        chassis: {
+          void: '#06080e',
+          surface: '#0c101a',
+          elevated: '#141b2d',
+          border: '#1f2d45',
+          highlight: '#2a3d5e'
+        },
+        cyber: {
+          cyan: '#00f0ff',
+          green: '#10ffa0',
+          red: '#ff2a5f',
+          purple: '#b845ff',
+          amber: '#ff9900',
+          yellow: '#fcee0a',
+          toxic: '#a3ff00'
+        }
+      },
+      fontFamily: {
+        headline: ['"Chakra Petch"', 'sans-serif'],
+        mono: ['"Share Tech Mono"', 'monospace']
+      }
+    }
+  }
+};
+</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+  <style>
+    /* Chamfered borders & HUD styling */
+    .clip-chamfer-tl {
+      clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%, 0 14px);
+    }
+    .clip-chamfer-tr {
+      clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+    }
+    .clip-chamfer-bl {
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+    }
+    .clip-chamfer-br {
+      clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+    }
+    .scanlines {
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none;
+    }
+    .cyber-glow-cyan {
+      text-shadow: 0 0 12px rgba(0, 240, 255, 0.6), 0 0 28px rgba(0, 240, 255, 0.25);
+    }
+    .cyber-glow-purple {
+      text-shadow: 0 0 12px rgba(184, 69, 255, 0.6), 0 0 28px rgba(184, 69, 255, 0.25);
+    }
+    .cyber-glow-red {
+      text-shadow: 0 0 12px rgba(255, 42, 95, 0.6), 0 0 28px rgba(255, 42, 95, 0.25);
+    }
+    .cyber-glow-green {
+      text-shadow: 0 0 12px rgba(16, 255, 160, 0.6), 0 0 28px rgba(16, 255, 160, 0.25);
+    }
+    .hud-grid {
+      background-image: radial-gradient(rgba(31, 45, 69, 0.4) 1px, transparent 1px);
+      background-size: 18px 18px;
+    }
+    @keyframes pulse-impact {
+      0% { transform: scale(0.85); opacity: 0; filter: brightness(2); }
+      50% { transform: scale(1.08); opacity: 1; filter: brightness(1.5); }
+      100% { transform: scale(1); opacity: 1; filter: brightness(1); }
+    }
+    .delta-entry {
+      animation: pulse-impact 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="min-h-[1024px] bg-chassis-void font-headline text-slate-200 select-none overflow-hidden flex flex-col justify-between relative" data-stitch-vh="min-h-[1024px]===min-h-screen">
+  <!-- Scanlines overlay for cyberpunk feel -->
+  <div class="absolute inset-0 scanlines z-40 opacity-70 pointer-events-none"></div>
+
+  <!-- Central Table Hub / Flush Cyber Reactor Button -->
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex items-center justify-center pointer-events-auto">
+    <button onclick="document.getElementById(&#39;combat-log-modal&#39;).classList.toggle(&#39;hidden&#39;)" class="relative w-12 h-12 bg-chassis-void border border-cyber-cyan/60 rounded-md rotate-45 flex items-center justify-center shadow-[0_0_15px_rgba(0,240,255,0.3)] hover:border-cyber-cyan hover:shadow-[0_0_25px_rgba(0,240,255,0.6)] active:scale-90 transition-all group overflow-hidden">
+      <!-- Inner diamond plate -->
+      <div class="absolute inset-1 border border-cyber-cyan/30 rounded-sm"></div>
+      <!-- Center Core Icon (counter-rotated) -->
+      <div class="-rotate-45 flex flex-col items-center justify-center">
+        <!-- 3 tactical horizontal cyber lines (hamburger tech) -->
+        <div class="w-3.5 h-0.5 bg-cyber-cyan rounded-full mb-0.5 shadow-[0_0_4px_#00f0ff] group-hover:w-4 transition-all"></div>
+        <div class="w-3 h-0.5 bg-cyber-cyan rounded-full mb-0.5 shadow-[0_0_4px_#00f0ff]"></div>
+        <div class="w-3.5 h-0.5 bg-cyber-cyan rounded-full shadow-[0_0_4px_#00f0ff] group-hover:w-4 transition-all"></div>
+      </div>
+    </button>
+  </div>
+
+  <!-- MODAL / OVERLAY: REGISTRO COMPLETO DE PARTIDA (COMBAT & TELEMETRY LOG) -->
+  <div id="combat-log-modal" class="hidden absolute inset-0 z-50 bg-chassis-void/85 backdrop-blur-md flex items-center justify-center p-6">
+    <div class="w-full max-w-lg bg-chassis-surface border-2 border-cyber-cyan/70 rounded-xl p-6 shadow-[0_0_40px_rgba(0,240,255,0.3)] relative flex flex-col max-h-[870px]" data-stitch-vh="max-h-[870px]===max-h-[85vh]">
+      <!-- Header -->
+      <div class="flex items-center justify-between border-b border-chassis-border pb-3 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 bg-cyber-cyan rounded shadow-[0_0_8px_#00f0ff] animate-ping"></span>
+          <h2 class="text-xl font-bold tracking-wider text-cyber-cyan cyber-glow-cyan uppercase">TELEMETRÍA // LOG DE DAÑO</h2>
+        </div>
+        <button onclick="document.getElementById(&#39;combat-log-modal&#39;).classList.add(&#39;hidden&#39;)" class="w-8 h-8 rounded-lg border border-chassis-border hover:border-cyber-red/50 text-slate-400 hover:text-cyber-red flex items-center justify-center transition-all">
+          <span class="material-symbols-outlined text-lg">close</span>
+        </button>
+      </div>
+
+      <!-- Turn & Stats Summary Bar -->
+      <div class="grid grid-cols-4 gap-2 mb-4 font-mono text-center text-xs">
+        <div class="p-2 bg-chassis-elevated border border-cyber-purple/30 rounded">
+          <div class="text-[10px] text-cyber-purple">P3 // VALKYRIE</div>
+          <div class="font-bold text-base text-cyber-purple">36 HP</div>
+        </div>
+        <div class="p-2 bg-chassis-elevated border border-cyber-red/30 rounded">
+          <div class="text-[10px] text-cyber-red">P4 // CYBORG</div>
+          <div class="font-bold text-base text-cyber-red">43 HP</div>
+        </div>
+        <div class="p-2 bg-chassis-elevated border border-cyber-green/30 rounded">
+          <div class="text-[10px] text-cyber-green">P1 // BIO-HACKER</div>
+          <div class="font-bold text-base text-cyber-green">42 HP</div>
+        </div>
+        <div class="p-2 bg-chassis-elevated border border-cyber-cyan/30 rounded">
+          <div class="text-[10px] text-cyber-cyan">P2 // RUNNER</div>
+          <div class="font-bold text-base text-cyber-cyan">44 HP</div>
+        </div>
+      </div>
+
+      <!-- Feed de Eventos Recientes -->
+      <div class="flex-1 overflow-y-auto space-y-2 pr-1 font-mono text-xs">
+        <div class="p-2.5 bg-chassis-elevated/70 border-l-2 border-cyber-red rounded flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-cyber-red font-bold text-sm">▼ -4 HP</span>
+            <span class="text-slate-300">P3 recibió 4 daño de combate de <b class="text-cyber-red">P4</b></span>
+          </div>
+          <span class="text-[10px] text-slate-500">T4 • 14:22</span>
+        </div>
+        <div class="p-2.5 bg-chassis-elevated/70 border-l-2 border-cyber-green rounded flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-cyber-green font-bold text-sm">▲ +6 HP</span>
+            <span class="text-slate-300">P1 activó Lifelink en fase de ataque</span>
+          </div>
+          <span class="text-[10px] text-slate-500">T4 • 14:19</span>
+        </div>
+        <div class="p-2.5 bg-chassis-elevated/70 border-l-2 border-cyber-green rounded flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-cyber-green font-bold text-sm">▲ +4 HP</span>
+            <span class="text-slate-300">P2 y P4 resolvieron hechizo de drenaje</span>
+          </div>
+          <span class="text-[10px] text-slate-500">T3 • 14:11</span>
+        </div>
+        <div class="p-2.5 bg-chassis-elevated/70 border-l-2 border-cyber-toxic rounded flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-cyber-toxic font-bold text-sm">☣ +1 VENENO</span>
+            <span class="text-slate-300">P4 recibió contador de veneno de <b class="text-cyber-green">P1</b></span>
+          </div>
+          <span class="text-[10px] text-slate-500">T3 • 14:05</span>
+        </div>
+        <div class="p-2.5 bg-chassis-elevated/70 border-l-2 border-cyber-red rounded flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-cyber-red font-bold text-sm">▼ -2 HP</span>
+            <span class="text-slate-300">P3 pagó vida por Shock Land</span>
+          </div>
+          <span class="text-[10px] text-slate-500">T2 • 13:58</span>
+        </div>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="mt-4 pt-3 border-t border-chassis-border flex items-center justify-between">
+        <button class="px-3 py-1.5 bg-chassis-elevated border border-chassis-border hover:border-cyber-cyan/50 text-slate-300 rounded font-mono text-xs flex items-center gap-1.5 transition-all">
+          <span class="material-symbols-outlined text-sm">restart_alt</span>
+          REVERTIR ÚLTIMA ACCIÓN
+        </button>
+        <button onclick="document.getElementById(&#39;combat-log-modal&#39;).classList.add(&#39;hidden&#39;)" class="px-4 py-1.5 bg-cyber-cyan text-chassis-void font-bold rounded font-headline text-xs tracking-wider uppercase shadow-[0_0_15px_rgba(0,240,255,0.4)]">
+          CERRAR LOG
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE CONTAINER (4 PLAYERS) -->
+  <main class="w-full h-[1024px] grid grid-cols-2 grid-rows-2 gap-1.5 p-1.5 bg-[#04060a]" data-stitch-vh="h-[1024px]===h-screen">
+
+    <!-- ==================== TOP ROW: INVERTED PLAYERS (180deg) ==================== -->
+    
+    <!-- JUGADOR 3: RAKDOS NEON (Violet / Purple) - ROTATED 180° -->
+    <section class="relative bg-chassis-surface border border-cyber-purple/40 rounded-lg p-2.5 flex flex-col justify-between rotate-180 overflow-hidden hud-grid shadow-[inset_0_0_30px_rgba(184,69,255,0.07)]">
+      
+      <!-- TOP COMMANDER DAMAGE BAR (ORIGINAL POSITION) -->
+      <div class="w-full border-b border-dashed border-cyber-purple/40 pb-1.5 flex items-center justify-around font-mono text-xs z-10 bg-chassis-void/40 rounded px-2">
+        <div class="flex items-center gap-1.5">
+          <span class="text-cyber-red font-bold text-sm">4</span>
+          <span class="w-3 h-3 rounded-sm bg-cyber-red shadow-[0_0_6px_#ff2a5f]"></span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-cyber-cyan font-bold text-sm">0</span>
+          <span class="w-3 h-3 rounded-sm bg-cyber-cyan shadow-[0_0_6px_#00f0ff]"></span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-cyber-green font-bold text-sm">0</span>
+          <span class="w-3 h-3 rounded-sm bg-cyber-green shadow-[0_0_6px_#10ffa0]"></span>
+        </div>
+      </div>
+
+      <!-- Life Telemetry Main Display with Delta Log -->
+      <div class="relative flex-1 flex items-center justify-between px-1 my-1">
+        <!-- Tap Area Decrement -->
+        <button class="w-16 h-full flex flex-col items-center justify-center rounded-lg border border-transparent hover:border-cyber-purple/30 active:bg-cyber-purple/20 transition-all z-20 group">
+          <span class="material-symbols-outlined text-3xl text-cyber-purple/60 group-hover:text-cyber-purple group-hover:scale-125 transition-transform font-bold">remove</span>
+          <span class="font-mono text-[9px] text-cyber-purple/50 tracking-wider">-1</span>
+        </button>
+
+        <!-- Big Life Value & Energy Arc -->
+        <div class="text-center relative z-10">
+          <div class="font-headline font-bold text-7xl md:text-8xl tracking-tighter text-cyber-purple cyber-glow-purple tabular-nums">
+            36
+          </div>
+          <!-- System Integrity Bar -->
+          <div class="w-40 h-1.5 bg-chassis-elevated rounded-full overflow-hidden mt-1 border border-cyber-purple/30 mx-auto">
+            <div class="h-full bg-cyber-purple shadow-[0_0_10px_#b845ff]" style="width: 90%;"></div>
+          </div>
+          <span class="font-mono text-[9px] text-cyber-purple/70 tracking-widest uppercase mt-0.5 block">INTEGRITY // 90%</span>
+        </div>
+
+        <!-- Tap Area Increment -->
+        <button class="w-16 h-full flex flex-col items-center justify-center rounded-lg border border-transparent hover:border-cyber-purple/30 active:bg-cyber-purple/20 transition-all z-20 group">
+          <span class="material-symbols-outlined text-3xl text-cyber-purple/60 group-hover:text-cyber-purple group-hover:scale-125 transition-transform font-bold">add</span>
+          <span class="font-mono text-[9px] text-cyber-purple/50 tracking-wider">+1</span>
+        </button>
+
+        <!-- Delta History Stream (Recent 5 Events) -->
+        <div class="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 z-30 font-mono pointer-events-none">
+          <div class="px-1.5 py-0.5 rounded bg-chassis-void/90 border border-cyber-red/50 text-cyber-red text-[11px] font-bold flex items-center gap-0.5 shadow-[0_0_8px_rgba(255,42,95,0.3)] delta-entry">
+            <span class="text-[9px]">▼</span> -4
+          </div>
+          <div class="px-1.5 py-0.5 rounded bg-chassis-void/70 border border-cyber-red/30 text-cyber-red/80 text-[10px] flex items-center gap-0.5">
+            <span class="text-[8px]">▼</span> -2
+          </div>
+          <div class="px-1.5 py-0.5 rounded bg-chassis-void/50 border border-cyber-green/30 text-cyber-green/80 text-[10px] flex items-center gap-0.5">
+            <span class="text-[8px]">▲</span> +3
+          </div>
+        </div>
+      </div>
+
+      <!-- Player Footer Bar (Name & Menu) -->
+      <div class="flex items-center justify-between pt-1 border-t border-cyber-purple/20 z-10 font-mono text-xs">
+        <button class="w-7 h-7 flex items-center justify-center rounded border border-cyber-purple/30 text-cyber-purple hover:bg-cyber-purple/20 active:scale-90">
+          <span class="material-symbols-outlined text-sm">menu</span>
+        </button>
+        <span class="font-bold text-cyber-purple text-[11px] tracking-wider">JUGADOR 3</span>
+        <div class="w-7"></div>
+      </div>
+    </section>
+
+    <!-- JUGADOR 4: CRIMSON CYBERPUNK (Red / Orange) - ROTATED 180° -->
+    <section class="relative bg-chassis-surface border border-cyber-red/40 rounded-lg p-2.5 flex flex-col justify-between rotate-180 overflow-hidden hud-grid shadow-[inset_0_0_30px_rgba(255,42,95,0.07)]">
+      
+      <!-- TOP COMMANDER DAMAGE BAR (ORIGINAL POSITION) -->
+      <div class="w-full border-b border-dashed border-cyber-red/40 pb-1.5 flex items-center justify-around font-mono text-xs z-10 bg-chassis-void/40 rounded px-2">
+        <div class="flex items-center gap-1.5">
+          <span class="text-cyber-purple font-bold text-sm">0</span>
+          <span class="w-3 h-3 rounded-sm bg-cyber-purple shadow-[0_0_6px_#b845ff]"></span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-cyber-cyan font-bold text-sm">0</span>
+          <span class="w-3 h-3 rounded-sm bg-cyber-cyan shadow-[0_0_6px_#00f0ff]"></span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="text-cyber-green font-bold text-sm">0</span>
+          <span class="w-3 h-3 rounded-sm bg-cyber-green shadow-[0_0_6px_#10ffa0]"></span>
+        </div>
+      </div>
+
+      <!-- Life Telemetry Main Display -->
+      <div class="relative flex-1 flex items-center justify-between px-1 my-1">
+        <!-- Tap Area Decrement -->
+        <button class="w-16 h-full flex flex-col items-center justify-center rounded-lg border border-transparent hover:border-cyber-red/30 active:bg-cyber-red/20 transition-all z-20 group">
+          <span class="material-symbols-outlined text-3xl text-cyber-red/60 group-hover:text-cyber-red group-hover:scale-125 transition-transform font-bold">remove</span>
+          <span class="font-mono text-[9px] text-cyber-red/50 tracking-wider">-1</span>
+        </button>
+
+        <!-- Big Life Value -->
+        <div class="text-center relative z-10">
+          <div class="font-headline font-bold text-7xl md:text-8xl tracking-tighter text-cyber-red cyber-glow-red tabular-nums">
+            43
+          </div>
+          <!-- System Integrity Bar -->
+          <div class="w-40 h-1.5 bg-chassis-elevated rounded-full overflow-hidden mt-1 border border-cyber-red/30 mx-auto">
+            <div class="h-full bg-cyber-red shadow-[0_0_10px_#ff2a5f]" style="width: 100%;"></div>
+          </div>
+          <span class="font-mono text-[9px] text-cyber-red/70 tracking-widest uppercase mt-0.5 block">OVERCLOCKED // +3</span>
+        </div>
+
+        <!-- Tap Area Increment -->
+        <button class="w-16 h-full flex flex-col items-center justify-center rounded-lg border border-transparent hover:border-cyber-red/30 active:bg-cyber-red/20 transition-all z-20 group">
+          <span class="material-symbols-outlined text-3xl text-cyber-red/60 group-hover:text-cyber-red group-hover:scale-125 transition-transform font-bold">add</span>
+          <span class="font-mono text-[9px] text-cyber-red/50 tracking-wider">+1</span>
+        </button>
+
+        <!-- Delta History Stream (Recent 5 Events) -->
+        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-end gap-1 z-30 font-mono pointer-events-none">
+          <div class="px-1.5 py-0.5 rounded bg-chassis-void/90 border border-cyber-green/50 text-cyber-green text-[11px] font-bold flex items-center gap-0.5 shadow-[0_0_8px_rgba(16,255,160,0.3)]">
+            <span class="text-[9px]">▲</span> +4
+          </div>
+          <div class="px-1.5 py-0.5 rounded bg-chassis-void/70 border border-cyber-red/40 text-cyber-red/80 text-[10px] flex items-center gap-0.5">
+            <span class="text-[8px]">▼</span> -1
+          </div>
+        </div>
+      </div>
+
+      <!-- Player Footer Bar (Name & Menu) -->
+      <div class="flex items-center justify-between pt-1 border-t border-cyber-red/20 z-10 font-mono text-xs">
+        <button class="w-7 h-7 flex items-center justify-center rounded border border-cyber-red/30 text-cyber-red hover:bg-cyber-red/20 active:scale-90">
+          <span class="material-symbols-outlined text-sm">menu</span>
+        </button>
+        <span class="font-bold text-cyber-red text-[11px] tracking-wider">JUGADOR 4</span>
+        <div class="w-7"></div>
+      </div>
+    </section>
+
+    <!-- ==================== BOTTOM ROW: REGULAR PLAYERS (0deg) ==================== -->
+
+    <!-- JUGADOR 1: ACID GOLGARI (Green Neon) -->
+    <section class="relative bg-chassis-surface border border-cyber-green/40 rounded-lg p-2.5 flex flex-col justify-between overflow-hidden hud-grid shadow-[inset_0_0_30px_rgba(16,255,160,0.07)]">
+      
+      <!-- Player Header Bar (Name & Menu) -->
+      <div class="flex items-center justify-between pb-1 border-b border-cyber-green/20 z-10 font-mono text-xs">
+        <button class="w-7 h-7 flex items-center justify-center rounded border border-cyber-green/30 text-cyber-green hover:bg-cyber-green/20 active:scale-90">
+          <span class="material-symbols-outlined text-sm">menu</span>
+        </button>
+        <span class="font-bold text-cyber-green text-[11px] tracking-wider">JUGADOR 1</span>
+        <div class="w-7"></div>
+      </div>
+
+      <!-- Life Telemetry Main Display -->
+      <div class="relative flex-1 flex items-center justify-between px-1 my-1">
+        <!-- Tap Area Decrement -->
+        <button class="w-16 h-full flex flex-col items-center justify-center rounded-lg border border-transparent hover:border-cyber-green/30 active:bg-cyber-green/20 transition-all z-20 group">
+          <span class="material-symbols-outlined text-3xl text-cyber-green/60 group-hover:text-cyber-green group-hover:scale-125 transition-transform font-bold">remove</span>
+          <span class="font-mono text-[9px] text-cyber-green/50 tracking-wider">-1</span>
+        </button>
+
+        <!-- Big Life Value -->
+        <div class="text-center relative z-10">
+          <div class="font-headline font-bold text-7xl md:text-8xl tracking-tighter text-cyber-green cyber-glow-green tabular-nums">
+            42
+          </div>
+          <!-- System Integrity Bar -->
+          <div class="w-40 h-1.5 bg-chassis-elevated rounded-full overflow-hidden mt-1 border border-cyber-green/30 mx-auto">
+            <div class="h-full bg-cyber-green shadow-[0_0_10px_#10ffa0]" style="width: 100%;"></div>
+          </div>
+          <span class="font-mono text-[9px] text-cyber-green/70 tracking-widest uppercase mt-0.5 block">OVERCLOCKED // +2</span>
+        </div>
+
+        <!-- Tap Area Increment -->
+        <button class="w-16 h-full flex flex-col items-center justify-center rounded-lg border border-transparent hover:border-cyber-green/30 active:bg-cyber-green/20 transition-all z-20 group">
+          <span class="material-symbols-outlined text-3xl text-cyber-green/60 group-hover:text-cyber-green group-hover:scale-125 transition-transform font-bold">add</span>
+          <span class="font-mono text-[9px] text-cyber-green/50 tracking-wider">+1</span>
+        </button>
+
+        <!-- Delta History Stream (Recent 5 Events) -->
+        <div class="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-1 z-30 font-mono pointer-events-none">
+          <div class="px-1.5 py-0.5 rounded bg-chassis-void/90 border border-cyber-green/50 text-cyber-green text-[11px] font-bold flex items-center gap-0.5 shadow-[0_0_8px_rgba(16,255,160,0.3)]">
+            <span class="text-[9px]">▲</span> +6
+          </div>
+          <div class="px-1.5 py-0.5 rounded bg-chassis-void/90 border border-cyber-red/50 text-cyber-red text-[11px] font-bold flex items-center gap-0.5 shadow-[0_0_8px_rgba(255,42,95,0.3)]">
+            <span class="text-[9px]">▼</span> -4
+          </div>
+          <div class="px-1.5 py-0.5 rounded bg-chassis-void/60 border border-cyber-red/30 text-cyber-red/70 text-[10px] flex items-center gap-0.5">
+            <span class="text-[8px]">▼</span> -1
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM COMMANDER DAMAGE BAR (ORIGINAL POSITION) -->
+      <div class="w-full border-t border-dashed border-cyber-green/40 pt-1.5 flex items-center justify-around font-mono text-xs z-10 bg-chassis-void/40 rounded px-2">
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-sm bg-cyber-cyan shadow-[0_0_6px_#00f0ff]"></span>
+          <span class="text-cyber-cyan font-bold text-sm">0</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-sm bg-cyber-purple shadow-[0_0_6px_#b845ff]"></span>
+          <span class="text-cyber-purple font-bold text-sm">0</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-sm bg-cyber-red shadow-[0_0_6px_#ff2a5f]"></span>
+          <span class="text-cyber-red font-bold text-sm">0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- JUGADOR 2: ELECTRIC CYAN (Blue / Cyan Cyberware) - JUGADOR CON BOTÓN SIGUIENTE -->
+    <section class="relative bg-chassis-surface border-2 border-cyber-cyan/70 rounded-lg p-2.5 flex flex-col justify-between overflow-hidden hud-grid shadow-[inset_0_0_35px_rgba(0,240,255,0.12)]">
+      
+      <!-- Player Header Bar (Name, Turn Action Button & Menu) -->
+      <div class="flex items-center justify-between pb-1 border-b border-cyber-cyan/30 z-10 font-mono text-xs">
+        <button class="w-7 h-7 flex items-center justify-center rounded border border-cyber-cyan/30 text-cyber-cyan hover:bg-cyber-cyan/20 active:scale-90">
+          <span class="material-symbols-outlined text-sm">menu</span>
+        </button>
+        <span class="font-bold text-cyber-cyan text-[11px] tracking-wider">JUGADOR 2</span>
+        <!-- Botón SIGUIENTE (Turno Activo) -->
+        <button class="px-3 py-1 bg-cyber-cyan/20 hover:bg-cyber-cyan/30 border border-cyber-cyan text-cyber-cyan font-headline font-bold text-xs tracking-wider uppercase rounded shadow-[0_0_12px_rgba(0,240,255,0.4)] active:scale-95 transition-all">
+          SIGUIENTE
+        </button>
+      </div>
+
+      <!-- Life Telemetry Main Display -->
+      <div class="relative flex-1 flex items-center justify-between px-1 my-1">
+        <!-- Tap Area Decrement -->
+        <button class="w-16 h-full flex flex-col items-center justify-center rounded-lg border border-transparent hover:border-cyber-cyan/30 active:bg-cyber-cyan/20 transition-all z-20 group">
+          <span class="material-symbols-outlined text-3xl text-cyber-cyan/60 group-hover:text-cyber-cyan group-hover:scale-125 transition-transform font-bold">remove</span>
+          <span class="font-mono text-[9px] text-cyber-cyan/50 tracking-wider">-1</span>
+        </button>
+
+        <!-- Big Life Value -->
+        <div class="text-center relative z-10">
+          <div class="font-headline font-bold text-7xl md:text-8xl tracking-tighter text-cyber-cyan cyber-glow-cyan tabular-nums">
+            44
+          </div>
+          <!-- System Integrity Bar -->
+          <div class="w-40 h-1.5 bg-chassis-elevated rounded-full overflow-hidden mt-1 border border-cyber-cyan/30 mx-auto">
+            <div class="h-full bg-cyber-cyan shadow-[0_0_10px_#00f0ff]" style="width: 100%;"></div>
+          </div>
+          <span class="font-mono text-[9px] text-cyber-cyan/70 tracking-widest uppercase mt-0.5 block">OVERCLOCKED // +4</span>
+        </div>
+
+        <!-- Tap Area Increment -->
+        <button class="w-16 h-full flex flex-col items-center justify-center rounded-lg border border-transparent hover:border-cyber-cyan/30 active:bg-cyber-cyan/20 transition-all z-20 group">
+          <span class="material-symbols-outlined text-3xl text-cyber-cyan/60 group-hover:text-cyber-cyan group-hover:scale-125 transition-transform font-bold">add</span>
+          <span class="font-mono text-[9px] text-cyber-cyan/50 tracking-wider">+1</span>
+        </button>
+
+        <!-- Delta History Stream (Recent 5 Events) -->
+        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col items-end gap-1 z-30 font-mono pointer-events-none">
+          <div class="px-1.5 py-0.5 rounded bg-chassis-void/90 border border-cyber-green/50 text-cyber-green text-[11px] font-bold flex items-center gap-0.5 shadow-[0_0_8px_rgba(16,255,160,0.3)]">
+            <span class="text-[9px]">▲</span> +4
+          </div>
+          <div class="px-1.5 py-0.5 rounded bg-chassis-void/70 border border-cyber-green/30 text-cyber-green/80 text-[10px] flex items-center gap-0.5">
+            <span class="text-[8px]">▲</span> +2
+          </div>
+          <div class="px-1.5 py-0.5 rounded bg-chassis-void/50 border border-cyber-red/30 text-cyber-red/70 text-[10px] flex items-center gap-0.5">
+            <span class="text-[8px]">▼</span> -2
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM COMMANDER DAMAGE BAR (ORIGINAL POSITION) -->
+      <div class="w-full border-t border-dashed border-cyber-cyan/40 pt-1.5 flex items-center justify-around font-mono text-xs z-10 bg-chassis-void/40 rounded px-2">
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-sm bg-cyber-green shadow-[0_0_6px_#10ffa0]"></span>
+          <span class="text-cyber-green font-bold text-sm">0</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-sm bg-cyber-purple shadow-[0_0_6px_#b845ff]"></span>
+          <span class="text-cyber-purple font-bold text-sm">0</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-sm bg-cyber-red shadow-[0_0_6px_#ff2a5f]"></span>
+          <span class="text-cyber-red font-bold text-sm">0</span>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+
+</body></html>

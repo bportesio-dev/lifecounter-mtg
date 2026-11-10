@@ -1,0 +1,472 @@
+<!DOCTYPE html><html lang="es" class="h-full bg-chassis-void"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cyberpunk MTG - Interacción de Arrastre de Combate</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        chassis: {
+          void: '#06080e',
+          surface: '#0c101a',
+          elevated: '#141b2d',
+          border: '#1f2d45',
+          highlight: '#2a3d5e'
+        },
+        cyber: {
+          cyan: '#00f0ff',
+          green: '#10ffa0',
+          red: '#ff2a5f',
+          purple: '#b845ff',
+          amber: '#ff9900',
+          yellow: '#fcee0a',
+          toxic: '#a3ff00'
+        }
+      },
+      fontFamily: {
+        headline: ['"Chakra Petch"', 'sans-serif'],
+        mono: ['"Share Tech Mono"', 'monospace']
+      }
+    }
+  }
+};
+</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+  <style>
+    .scanlines {
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none;
+    }
+    .hud-grid {
+      background-image: radial-gradient(rgba(31, 45, 69, 0.4) 1px, transparent 1px);
+      background-size: 18px 18px;
+    }
+    .laser-beam {
+      filter: drop-shadow(0 0 8px #00f0ff) drop-shadow(0 0 16px rgba(0, 240, 255, 0.7));
+      animation: dash 1s linear infinite;
+    }
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -20;
+      }
+    }
+    @keyframes target-pulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px #ff2a5f); }
+      50% { transform: scale(1.08); filter: drop-shadow(0 0 22px #ff2a5f); }
+    }
+    .target-locked {
+      animation: target-pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes rotate-reticle {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .reticle-spin {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: rotate-reticle 6s linear infinite;
+    }
+  </style>
+</head>
+<body class="min-h-[1024px] bg-chassis-void font-headline text-slate-200 select-none overflow-hidden flex flex-col justify-between relative" data-stitch-vh="min-h-[1024px]===min-h-screen">
+  <!-- Scanlines overlay -->
+  <div class="absolute inset-0 scanlines z-40 opacity-70 pointer-events-none"></div>
+
+  <!-- SVG LASER VECTOR OVERLAY (From P1 [bottom-left] to P4 [top-right]) -->
+  <svg class="absolute inset-0 w-full h-full z-40 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Glow filter -->
+      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="5" result="blur"></feGaussianBlur>
+        <feMerge>
+          <feMergeNode in="blur"></feMergeNode>
+          <feMergeNode in="SourceGraphic"></feMergeNode>
+        </feMerge>
+      </filter>
+      <!-- Gradient along laser -->
+      <linearGradient id="laserGrad" x1="28%" y1="72%" x2="72%" y2="28%">
+        <stop offset="0%" stop-color="#10ffa0"></stop>
+        <stop offset="60%" stop-color="#00f0ff"></stop>
+        <stop offset="100%" stop-color="#ff2a5f"></stop>
+      </linearGradient>
+    </defs>
+
+    <!-- Source Origin Radar Ripple (P1) -->
+    <circle cx="28%" cy="72%" r="24" fill="none" stroke="#10ffa0" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6" class="reticle-spin"></circle>
+    <circle cx="28%" cy="72%" r="10" fill="#10ffa0" opacity="0.4"></circle>
+    <circle cx="28%" cy="72%" r="4" fill="#ffffff"></circle>
+
+    <!-- Main Laser Beam Core & Halo -->
+    <line x1="28%" y1="72%" x2="72%" y2="28%" stroke="url(#laserGrad)" stroke-width="4" filter="url(#glow)"></line>
+    <line x1="28%" y1="72%" x2="72%" y2="28%" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="6 4" class="laser-beam"></line>
+
+    <!-- Combat Target Lock Reticle (P4) -->
+    <g transform="translate(553, 287)">
+      <!-- Outer Target Bracket -->
+      <circle cx="0" cy="0" r="42" fill="none" stroke="#ff2a5f" stroke-width="2" stroke-dasharray="14 10" class="reticle-spin"></circle>
+      <circle cx="0" cy="0" r="28" fill="rgba(255, 42, 95, 0.15)" stroke="#ff2a5f" stroke-width="1.5"></circle>
+      <!-- Crosshairs -->
+      <line x1="-36" y1="0" x2="-20" y2="0" stroke="#ff2a5f" stroke-width="2"></line>
+      <line x1="20" y1="0" x2="36" y2="0" stroke="#ff2a5f" stroke-width="2"></line>
+      <line x1="0" y1="-36" x2="0" y2="-20" stroke="#ff2a5f" stroke-width="2"></line>
+      <line x1="0" y1="20" x2="0" y2="36" stroke="#ff2a5f" stroke-width="2"></line>
+      <!-- Center Bullseye -->
+      <circle cx="0" cy="0" r="4" fill="#ff2a5f"></circle>
+    </g>
+  </svg>
+
+  <!-- FLOATING DAMAGE CALIBRATOR / HUD ACTION BADGE -->
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col items-center">
+    <div class="bg-chassis-surface/95 border-2 border-cyber-cyan rounded-xl p-3 px-5 shadow-[0_0_30px_rgba(0,240,255,0.4)] backdrop-blur-md flex items-center gap-4 target-locked">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 bg-cyber-red rounded-full shadow-[0_0_8px_#ff2a5f] animate-ping"></span>
+        <div class="font-mono text-xs">
+          <div class="text-[10px] text-slate-400">ENLACE DE COMBATE TÁCTICO</div>
+          <div class="font-bold text-slate-100 flex items-center gap-1.5">
+            <span class="text-cyber-green">NODE_01</span>
+            <span class="material-symbols-outlined text-xs text-cyber-cyan">arrow_forward</span>
+            <span class="text-cyber-red">NODE_04</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="h-8 w-px bg-chassis-border"></div>
+
+      <!-- Damage Amount Badge -->
+      <div class="flex items-center gap-2">
+        <button id="btn-dec-damage" class="w-7 h-7 rounded bg-chassis-elevated border border-cyber-red/50 text-cyber-red font-mono font-bold flex items-center justify-center hover:bg-cyber-red/20 active:scale-95">-1</button>
+        <div class="px-3 py-1 bg-cyber-red/20 border border-cyber-red rounded text-center">
+          <span id="damage-val" class="font-headline font-bold text-xl text-cyber-red tabular-nums cyber-glow-red">-4 HP</span>
+        </div>
+        <button id="btn-inc-damage" class="w-7 h-7 rounded bg-chassis-elevated border border-cyber-green/50 text-cyber-green font-mono font-bold flex items-center justify-center hover:bg-cyber-green/20 active:scale-95">+1</button>
+      </div>
+
+      <button id="btn-assign-damage" class="px-3 py-1.5 bg-cyber-red hover:bg-[#ff4373] text-white rounded font-bold text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(255,42,95,0.6)] flex items-center gap-1 active:scale-95 transition-all">
+        <span class="material-symbols-outlined text-sm">local_fire_department</span>
+        ASIGNAR
+      </button>
+
+      <!-- Quick SFX Test Trigger -->
+      <button id="btn-test-sound" title="Probar audio táctico" class="w-8 h-8 rounded border border-cyber-cyan/40 bg-chassis-elevated text-cyber-cyan hover:bg-cyber-cyan/20 active:scale-90 flex items-center justify-center transition-all">
+        <span class="material-symbols-outlined text-base">volume_up</span>
+      </button>
+    </div>
+    <span class="font-mono text-[9px] text-cyber-cyan/80 tracking-widest mt-2 uppercase bg-chassis-void/80 px-2 py-0.5 rounded border border-cyber-cyan/30">
+      TOCA &#39;ASIGNAR&#39; O EL ICONO DE VOLUMEN PARA ACTIVAR EL AUDIO SFX
+    </span>
+  </div>
+
+  <!-- TABLE CONTAINER (4 PLAYERS) -->
+  <main class="w-full h-[1024px] grid grid-cols-2 grid-rows-2 gap-1.5 p-1.5 bg-[#04060a]" data-stitch-vh="h-[1024px]===h-screen">
+
+    <!-- ==================== TOP ROW: INVERTED PLAYERS (180deg) ==================== -->
+    
+    <!-- JUGADOR 3: RAKDOS NEON (Violet / Purple) - ROTATED 180° -->
+    <section class="relative bg-chassis-surface border border-cyber-purple/20 rounded-lg p-2.5 flex flex-col justify-between rotate-180 overflow-hidden hud-grid opacity-60">
+      <div class="flex items-center justify-between border-b border-cyber-purple/20 pb-1.5 z-10">
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 bg-cyber-purple shadow-[0_0_8px_#b845ff] rotate-45"></div>
+          <span class="font-mono text-xs text-cyber-purple tracking-widest font-bold">NODE_03 // ARCH-VALKYRIE</span>
+        </div>
+        <span class="px-1.5 py-0.5 bg-cyber-purple/10 border border-cyber-purple/30 text-cyber-purple rounded text-[10px] font-mono">STANDBY</span>
+      </div>
+
+      <div class="relative flex-1 flex items-center justify-between px-2 my-1">
+        <div class="w-16"></div>
+        <div class="text-center relative z-10">
+          <div class="font-headline font-bold text-7xl md:text-8xl tracking-tighter text-cyber-purple/60 tabular-nums">36</div>
+          <div class="w-40 h-1.5 bg-chassis-elevated rounded-full overflow-hidden mt-1 border border-cyber-purple/20 mx-auto">
+            <div class="h-full bg-cyber-purple" style="width: 90%;"></div>
+          </div>
+        </div>
+        <div class="w-16"></div>
+      </div>
+
+      <div class="flex items-center justify-between pt-1 border-t border-cyber-purple/20 z-10 font-mono text-xs">
+        <div class="text-[10px] text-slate-500 font-mono">INTEGRIDAD: 90%</div>
+        <div class="flex gap-2 text-[10px] text-slate-500">CMD: 4 • VENENO: 0</div>
+      </div>
+    </section>
+
+    <!-- JUGADOR 4: CRIMSON CYBERPUNK (Red / Orange) - TARGET LOCKED (ROTATED 180°) -->
+    <section class="relative bg-chassis-surface border-2 border-cyber-red rounded-lg p-2.5 flex flex-col justify-between rotate-180 overflow-hidden hud-grid shadow-[0_0_35px_rgba(255,42,95,0.25)]">
+      <!-- Lock Overlay Highlight -->
+      <div class="absolute inset-0 bg-cyber-red/10 pointer-events-none animate-pulse"></div>
+
+      <!-- Player Header / ID Bar -->
+      <div class="flex items-center justify-between border-b border-cyber-red/40 pb-1.5 z-10">
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 bg-cyber-red shadow-[0_0_8px_#ff2a5f] rotate-45"></div>
+          <span class="font-mono text-xs text-cyber-red tracking-widest font-bold">NODE_04 // SYNTH-CYBORG</span>
+        </div>
+        <span class="px-2 py-0.5 bg-cyber-red text-chassis-void font-bold rounded text-[10px] font-mono tracking-wider">
+          TARGET ACQUIRED
+        </span>
+      </div>
+
+      <!-- Life Telemetry Display with Pending Damage Phantom -->
+      <div class="relative flex-1 flex items-center justify-between px-2 my-1">
+        <div class="w-16"></div>
+        <div class="text-center relative z-10">
+          <div class="flex items-center justify-center gap-3">
+            <span class="font-headline font-bold text-7xl md:text-8xl tracking-tighter text-cyber-red tabular-nums line-through opacity-50">43</span>
+            <span class="material-symbols-outlined text-2xl text-cyber-red">arrow_forward</span>
+            <span class="font-headline font-bold text-7xl md:text-8xl tracking-tighter text-white cyber-glow-red tabular-nums">39</span>
+          </div>
+          <!-- System Integrity Bar -->
+          <div class="w-44 h-1.5 bg-chassis-elevated rounded-full overflow-hidden mt-1 border border-cyber-red/50 mx-auto">
+            <div class="h-full bg-cyber-red shadow-[0_0_10px_#ff2a5f]" style="width: 82%;"></div>
+          </div>
+          <span class="font-mono text-[9px] text-cyber-red font-bold tracking-widest uppercase mt-0.5 block">
+            DAÑO INMINENTE: -4 HP (COMMANDER DE P1)
+          </span>
+        </div>
+        <div class="w-16"></div>
+      </div>
+
+      <!-- Sub-Counters -->
+      <div class="flex items-center justify-between pt-1 border-t border-cyber-red/30 z-10 font-mono text-xs">
+        <div class="flex items-center gap-1.5 text-cyber-red text-[11px] font-bold">
+          <span class="material-symbols-outlined text-xs">warning</span>
+          DAÑO CMD DE P1: 0 → 4
+        </div>
+        <div class="flex items-center gap-1 bg-chassis-elevated px-2 py-0.5 rounded border border-cyber-toxic/40">
+          <span class="material-symbols-outlined text-[12px] text-cyber-toxic">coronavirus</span>
+          <span class="text-cyber-toxic text-[11px] font-bold">1</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== BOTTOM ROW: REGULAR PLAYERS (0deg) ==================== -->
+
+    <!-- JUGADOR 1: ACID GOLGARI (Green Neon) - ATTACK SOURCE -->
+    <section class="relative bg-chassis-surface border-2 border-cyber-green rounded-lg p-2.5 flex flex-col justify-between overflow-hidden hud-grid shadow-[0_0_35px_rgba(16,255,160,0.2)]">
+      <!-- Glow highlight -->
+      <div class="absolute inset-0 bg-cyber-green/5 pointer-events-none"></div>
+
+      <!-- Player Header / ID Bar -->
+      <div class="flex items-center justify-between border-b border-cyber-green/40 pb-1.5 z-10">
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 bg-cyber-green shadow-[0_0_8px_#10ffa0] rotate-45"></div>
+          <span class="font-mono text-xs text-cyber-green tracking-widest font-bold">NODE_01 // BIO-HACKER</span>
+        </div>
+        <span class="px-2 py-0.5 bg-cyber-green/20 border border-cyber-green text-cyber-green font-bold rounded text-[10px] font-mono tracking-wider">
+          ATTACK VECTOR ACTIVE
+        </span>
+      </div>
+
+      <!-- Life Telemetry Main Display -->
+      <div class="relative flex-1 flex items-center justify-between px-2 my-1">
+        <div class="w-16"></div>
+        <div class="text-center relative z-10">
+          <div class="font-headline font-bold text-7xl md:text-8xl tracking-tighter text-cyber-green cyber-glow-green tabular-nums">
+            42
+          </div>
+          <div class="w-40 h-1.5 bg-chassis-elevated rounded-full overflow-hidden mt-1 border border-cyber-green/40 mx-auto">
+            <div class="h-full bg-cyber-green shadow-[0_0_10px_#10ffa0]" style="width: 100%;"></div>
+          </div>
+          <span class="font-mono text-[9px] text-cyber-green tracking-widest uppercase mt-0.5 block">
+            HOSTILE TRANSMISSION // TARGET: NODE_04
+          </span>
+        </div>
+        <div class="w-16"></div>
+      </div>
+
+      <!-- Sub-Counters -->
+      <div class="flex items-center justify-between pt-1 border-t border-cyber-green/30 z-10 font-mono text-xs">
+        <div class="text-[10px] text-cyber-green font-mono">ARRASTRA A OTRO NODO PARA REASIGNAR</div>
+        <div class="flex gap-2 text-[10px] text-slate-400">CMD: 0 • VENENO: 0</div>
+      </div>
+    </section>
+
+    <!-- JUGADOR 2: ELECTRIC CYAN (Blue / Cyan Cyberware) - STANDBY -->
+    <section class="relative bg-chassis-surface border border-cyber-cyan/20 rounded-lg p-2.5 flex flex-col justify-between overflow-hidden hud-grid opacity-60">
+      <div class="flex items-center justify-between border-b border-cyber-cyan/20 pb-1.5 z-10">
+        <div class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 bg-cyber-cyan shadow-[0_0_8px_#00f0ff] rotate-45"></div>
+          <span class="font-mono text-xs text-cyber-cyan tracking-widest font-bold">NODE_02 // GLITCH-RUNNER</span>
+        </div>
+        <span class="px-1.5 py-0.5 bg-cyber-cyan/10 border border-cyber-cyan/30 text-cyber-cyan rounded text-[10px] font-mono">STANDBY</span>
+      </div>
+
+      <div class="relative flex-1 flex items-center justify-between px-2 my-1">
+        <div class="w-16"></div>
+        <div class="text-center relative z-10">
+          <div class="font-headline font-bold text-7xl md:text-8xl tracking-tighter text-cyber-cyan/60 tabular-nums">44</div>
+          <div class="w-40 h-1.5 bg-chassis-elevated rounded-full overflow-hidden mt-1 border border-cyber-cyan/20 mx-auto">
+            <div class="h-full bg-cyber-cyan" style="width: 100%;"></div>
+          </div>
+        </div>
+        <div class="w-16"></div>
+      </div>
+
+      <div class="flex items-center justify-between pt-1 border-t border-cyber-cyan/20 z-10 font-mono text-xs">
+        <div class="text-[10px] text-slate-500 font-mono">INTEGRIDAD: 100%</div>
+        <div class="flex gap-2 text-[10px] text-slate-500">CMD: 0 • VENENO: 0</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Cyber Sound Synthesizer Script (Self-contained Web Audio API) -->
+  <script>
+    // Audio Context instance
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // Play Target Lock acquisition sound (high-tech radar beep)
+    function playTargetLock() {
+      if (!soundEnabled) return;
+      initAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.12);
+      
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.15);
+    }
+
+    // Play Laser Beam charge hum
+    function playLaserHum() {
+      if (!soundEnabled) return;
+      initAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(440, audioCtx.currentTime + 0.2);
+
+      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.25);
+    }
+
+    // Play Heavy Combat Impact sound (when assigned)
+    function playImpact() {
+      if (!soundEnabled) return;
+      initAudio();
+      // Low punch
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(140, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(35, audioCtx.currentTime + 0.35);
+
+      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.35);
+
+      // Cyber glitch burst
+      const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.1, audioCtx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < noiseBuffer.length; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+      const whiteNoise = audioCtx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+      const noiseGain = audioCtx.createGain();
+      noiseGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+      whiteNoise.connect(noiseGain);
+      noiseGain.connect(audioCtx.destination);
+      whiteNoise.start();
+    }
+
+    // Play tick for +1 / -1
+    function playTick(up = true) {
+      if (!soundEnabled) return;
+      initAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(up ? 900 : 500, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.05);
+    }
+
+    // Initial lock sound on first tap/click
+    window.addEventListener('click', function() {
+      initAudio();
+    }, { once: true });
+
+    // Interactive button triggers
+    document.addEventListener('DOMContentLoaded', () => {
+      const decBtn = document.getElementById('btn-dec-damage');
+      const incBtn = document.getElementById('btn-inc-damage');
+      const assignBtn = document.getElementById('btn-assign-damage');
+      const testSoundBtn = document.getElementById('btn-test-sound');
+      const damageVal = document.getElementById('damage-val');
+
+      let currentDamage = 4;
+
+      if (decBtn) {
+        decBtn.onclick = () => {
+          if (currentDamage > 1) {
+            currentDamage--;
+            damageVal.textContent = `-${currentDamage} HP`;
+            playTick(false);
+          }
+        };
+      }
+
+      if (incBtn) {
+        incBtn.onclick = () => {
+          currentDamage++;
+          damageVal.textContent = `-${currentDamage} HP`;
+          playTick(true);
+        };
+      }
+
+      if (assignBtn) {
+        assignBtn.onclick = () => {
+          playImpact();
+          assignBtn.classList.add('scale-95');
+          setTimeout(() => assignBtn.classList.remove('scale-95'), 150);
+        };
+      }
+
+      if (testSoundBtn) {
+        testSoundBtn.onclick = () => {
+          playTargetLock();
+          setTimeout(() => playLaserHum(), 180);
+        };
+      }
+    });
+  </script>
+
+
+</body></html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html><html lang="es" class="h-full bg-chassis-void"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cyberpunk MTG - Calibración de Partida</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        chassis: {
+          void: '#06080e',
+          surface: '#0c101a',
+          elevated: '#141b2d',
+          border: '#1f2d45',
+          highlight: '#2a3d5e'
+        },
+        cyber: {
+          cyan: '#00f0ff',
+          green: '#10ffa0',
+          red: '#ff2a5f',
+          purple: '#b845ff',
+          amber: '#ff9900',
+          yellow: '#fcee0a',
+          toxic: '#a3ff00'
+        }
+      },
+      fontFamily: {
+        headline: ['"Chakra Petch"', 'sans-serif'],
+        mono: ['"Share Tech Mono"', 'monospace']
+      }
+    }
+  }
+};
+</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+  <style>
+    .scanlines {
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none;
+    }
+    .hud-grid {
+      background-image: radial-gradient(rgba(31, 45, 69, 0.4) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    .cyber-glow-cyan {
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.7);
+    }
+  </style>
+</head>
+<body class="min-h-[1024px] bg-chassis-void font-headline text-slate-200 select-none overflow-y-auto flex items-center justify-center p-4 relative hud-grid" data-stitch-vh="min-h-[1024px]===min-h-screen">
+  <!-- Scanlines -->
+  <div class="absolute inset-0 scanlines z-40 opacity-70 pointer-events-none"></div>
+
+  <!-- Calibración Modal / Terminal Chassis -->
+  <div class="relative z-30 w-full max-w-xl bg-chassis-surface/95 border-2 border-cyber-cyan/60 rounded-xl p-6 sm:p-8 backdrop-blur-md shadow-[0_0_40px_rgba(0,240,255,0.2)]">
+    
+    <!-- Chamfered Accent Decors -->
+    <div class="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-cyber-cyan"></div>
+    <div class="absolute -top-1 -right-1 w-6 h-6 border-t-2 border-r-2 border-cyber-cyan"></div>
+    <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-2 border-l-2 border-cyber-cyan"></div>
+    <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-2 border-r-2 border-cyber-cyan"></div>
+
+    <!-- Header Telemetry -->
+    <header class="flex items-center justify-between border-b border-chassis-border pb-4 mb-6">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-2.5 h-2.5 bg-cyber-cyan shadow-[0_0_8px_#00f0ff] animate-ping"></span>
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-wider text-cyber-cyan cyber-glow-cyan uppercase">
+            MTG // NETRUNNER HUD
+          </h1>
+        </div>
+        <p class="font-mono text-xs text-slate-400 mt-1">
+          PROTOCOL: COMMANDER TABLETOP // IPAD OPTIMIZED
+        </p>
+      </div>
+      <div class="text-right font-mono text-[10px] text-cyber-cyan/70 border border-cyber-cyan/30 px-2.5 py-1 rounded bg-chassis-elevated">
+        SYS_VER 2.4.9<br>ONLINE
+      </div>
+    </header>
+
+    <!-- SECTION 1: NÚMERO DE JUGADORES -->
+    <section class="mb-6">
+      <div class="flex items-center justify-between mb-2">
+        <label class="text-sm font-bold tracking-wider text-slate-200 flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-cyber-cyan text-base">group</span>
+          CANTIDAD DE OPERADORES
+        </label>
+        <span class="font-mono text-[11px] text-cyber-cyan">SELECCIONADO: 4 JUGADORES</span>
+      </div>
+      <div class="grid grid-cols-5 gap-2 font-mono">
+        <button class="py-2.5 bg-chassis-elevated border border-chassis-border hover:border-cyber-cyan/50 text-slate-300 rounded font-bold transition-all text-sm">2</button>
+        <button class="py-2.5 bg-chassis-elevated border border-chassis-border hover:border-cyber-cyan/50 text-slate-300 rounded font-bold transition-all text-sm">3</button>
+        <!-- Activo -->
+        <button class="py-2.5 bg-cyber-cyan/20 border-2 border-cyber-cyan text-cyber-cyan font-bold rounded shadow-[0_0_15px_rgba(0,240,255,0.3)] transition-all text-sm">4</button>
+        <button class="py-2.5 bg-chassis-elevated border border-chassis-border hover:border-cyber-cyan/50 text-slate-300 rounded font-bold transition-all text-sm">5</button>
+        <button class="py-2.5 bg-chassis-elevated border border-chassis-border hover:border-cyber-cyan/50 text-slate-300 rounded font-bold transition-all text-sm">6</button>
+      </div>
+    </section>
+
+    <!-- SECTION 2: DISPOSICIÓN DE LA MESA -->
+    <section class="mb-6">
+      <div class="flex items-center justify-between mb-2">
+        <label class="text-sm font-bold tracking-wider text-slate-200 flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-cyber-cyan text-base">view_quilt</span>
+          DISPOSICIÓN TÁCTICA EN MESA
+        </label>
+        <span class="font-mono text-[10px] text-slate-400">ROTACIÓN SEGÚN ASIENTO</span>
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <!-- Opción 1: Enfrentados (Activo) -->
+        <div class="p-3 bg-cyber-cyan/15 border-2 border-cyber-cyan rounded-lg cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.2)] transition-all">
+          <div class="w-full aspect-[4/3] bg-chassis-void rounded p-1 grid grid-cols-2 grid-rows-2 gap-1 mb-2 border border-cyber-cyan/40">
+            <div class="bg-cyber-purple/40 border border-cyber-purple/80 rounded text-[9px] font-mono flex items-center justify-center text-cyber-purple font-bold rotate-180">P3</div>
+            <div class="bg-cyber-red/40 border border-cyber-red/80 rounded text-[9px] font-mono flex items-center justify-center text-cyber-red font-bold rotate-180">P4</div>
+            <div class="bg-cyber-green/40 border border-cyber-green/80 rounded text-[9px] font-mono flex items-center justify-center text-cyber-green font-bold">P1</div>
+            <div class="bg-cyber-cyan/40 border border-cyber-cyan/80 rounded text-[9px] font-mono flex items-center justify-center text-cyber-cyan font-bold">P2</div>
+          </div>
+          <p class="font-bold text-xs text-cyber-cyan tracking-wide">ENFRENTADOS</p>
+          <p class="font-mono text-[10px] text-slate-400 leading-tight">2 vs 2 de cada lado</p>
+        </div>
+
+        <!-- Opción 2: Alrededor -->
+        <div class="p-3 bg-chassis-elevated border border-chassis-border hover:border-cyber-cyan/50 rounded-lg cursor-pointer transition-all">
+          <div class="w-full aspect-[4/3] bg-chassis-void rounded p-1 flex flex-col justify-between mb-2 border border-chassis-border">
+            <div class="bg-cyber-purple/20 border border-cyber-purple/40 rounded text-[8px] font-mono py-0.5 text-center text-cyber-purple rotate-180">P3</div>
+            <div class="flex justify-between gap-1 my-0.5">
+              <div class="bg-cyber-red/20 border border-cyber-red/40 rounded text-[8px] font-mono px-1 flex items-center text-cyber-red rotate-90">P4</div>
+              <div class="bg-cyber-cyan/20 border border-cyber-cyan/40 rounded text-[8px] font-mono px-1 flex items-center text-cyber-cyan -rotate-90">P2</div>
+            </div>
+            <div class="bg-cyber-green/20 border border-cyber-green/40 rounded text-[8px] font-mono py-0.5 text-center text-cyber-green">P1</div>
+          </div>
+          <p class="font-bold text-xs text-slate-300 tracking-wide">ALREDEDOR</p>
+          <p class="font-mono text-[10px] text-slate-400 leading-tight">1 jugador por arista</p>
+        </div>
+
+        <!-- Opción 3: Misma Vista -->
+        <div class="p-3 bg-chassis-elevated border border-chassis-border hover:border-cyber-cyan/50 rounded-lg cursor-pointer transition-all">
+          <div class="w-full aspect-[4/3] bg-chassis-void rounded p-1 grid grid-cols-2 grid-rows-2 gap-1 mb-2 border border-chassis-border">
+            <div class="bg-cyber-purple/20 border border-cyber-purple/40 rounded text-[9px] font-mono flex items-center justify-center text-cyber-purple">P3</div>
+            <div class="bg-cyber-red/20 border border-cyber-red/40 rounded text-[9px] font-mono flex items-center justify-center text-cyber-red">P4</div>
+            <div class="bg-cyber-green/20 border border-cyber-green/40 rounded text-[9px] font-mono flex items-center justify-center text-cyber-green">P1</div>
+            <div class="bg-cyber-cyan/20 border border-cyber-cyan/40 rounded text-[9px] font-mono flex items-center justify-center text-cyber-cyan">P2</div>
+          </div>
+          <p class="font-bold text-xs text-slate-300 tracking-wide">MISMA VISTA</p>
+          <p class="font-mono text-[10px] text-slate-400 leading-tight">Orientación frontal</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: VIDA INICIAL Y FORMATO -->
+    <section class="mb-6">
+      <div class="flex items-center justify-between mb-2">
+        <label class="text-sm font-bold tracking-wider text-slate-200 flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-cyber-cyan text-base">favorite</span>
+          INTEGRIDAD DE VIDA INICIAL
+        </label>
+        <span class="font-mono text-[10px] text-slate-400">FORMATO MTG</span>
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <button class="p-3 bg-chassis-elevated border border-chassis-border hover:border-cyber-cyan/50 rounded-lg text-left transition-all">
+          <div class="font-headline font-bold text-2xl text-slate-200">20</div>
+          <div class="font-mono text-[10px] text-slate-400 uppercase">ESTÁNDAR / MODERN</div>
+        </button>
+        <button class="p-3 bg-chassis-elevated border border-chassis-border hover:border-cyber-cyan/50 rounded-lg text-left transition-all">
+          <div class="font-headline font-bold text-2xl text-slate-200">30</div>
+          <div class="font-mono text-[10px] text-slate-400 uppercase">TWO-HEADED GIANT</div>
+        </button>
+        <!-- Activo Commander 40 -->
+        <button class="p-3 bg-cyber-cyan/15 border-2 border-cyber-cyan rounded-lg text-left shadow-[0_0_15px_rgba(0,240,255,0.2)] transition-all">
+          <div class="font-headline font-bold text-2xl text-cyber-cyan cyber-glow-cyan">40</div>
+          <div class="font-mono text-[10px] text-cyber-cyan font-bold uppercase">COMMANDER (EDH)</div>
+        </button>
+      </div>
+    </section>
+
+    <!-- SECTION 4: EFECTOS DE SONIDO TÁCTICOS (AUDIO FX) -->
+    <section class="mb-8 p-3 bg-chassis-elevated/70 border border-cyber-cyan/30 rounded-lg">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded bg-cyber-cyan/15 border border-cyber-cyan/50 flex items-center justify-center text-cyber-cyan">
+            <span class="material-symbols-outlined text-lg">volume_up</span>
+          </div>
+          <div>
+            <div class="text-xs font-bold tracking-wide text-slate-200 flex items-center gap-2">
+              EFECTOS DE SONIDO SINTETIZADO (SFX)
+              <span class="px-1.5 py-0.2 bg-cyber-green/20 text-cyber-green text-[9px] font-mono border border-cyber-green/40 rounded">ACTIVO</span>
+            </div>
+            <div class="font-mono text-[10px] text-slate-400">Pulsos de impacto, láser de arrastre y alerta crítica</div>
+          </div>
+        </div>
+        <!-- Cyber Switch -->
+        <button class="w-12 h-6 bg-cyber-cyan/30 border border-cyber-cyan rounded-full p-0.5 flex items-center justify-end shadow-[0_0_10px_rgba(0,240,255,0.4)]">
+          <div class="w-5 h-5 bg-cyber-cyan rounded-full shadow-[0_0_6px_#00f0ff]"></div>
+        </button>
+      </div>
+    </section>
+
+    <!-- BOTÓN DE ACCIÓN PRIMARIA: DESPLEGAR PARTIDA -->
+    <div class="space-y-3">
+      <button class="w-full py-4 bg-cyber-cyan hover:bg-[#33f3ff] active:scale-[0.98] text-chassis-void font-bold text-lg tracking-widest uppercase rounded-lg shadow-[0_0_25px_rgba(0,240,255,0.6)] flex items-center justify-center gap-2 transition-all">
+        <span class="material-symbols-outlined text-2xl font-bold">bolt</span>
+        INICIAR ENLACE DE BATALLA
+      </button>
+      <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-1">
+        <span class="flex items-center gap-1">
+          <span class="material-symbols-outlined text-xs text-cyber-cyan">devices</span>
+          Soporte iPad Safari Pantalla Completa
+        </span>
+        <span class="text-cyber-green">HUD SINCRONIZADO // 60 FPS</span>
+      </div>
+    </div>
+
+  </div>
+
+
+</body></html>

@@ -15,12 +15,13 @@
   <link rel="apple-touch-icon" href="assets/icon-180.png">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <meta name="theme-color" content="#07090d">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Rajdhani:500,600,700|Share+Tech+Mono">
-  <link rel="stylesheet" href="css/app.css?v=78">
+  <meta name="theme-color" content="#06080e">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Chakra+Petch:600,700|Rajdhani:500,600,700|Share+Tech+Mono">
+  <link rel="stylesheet" href="css/app.css?v=86">
 </head>
 <body>
   <div id="app">
+    <div class="scanlines"></div>
     <div id="board"></div>
     <button type="button" id="hub" class="hidden" data-act="hub" title="Menú">
       <span class="hub-shape hub-shape-out"></span>
@@ -32,39 +33,93 @@
       <span id="winner-text"></span>
     </div>
     <svg id="drag-arrow" class="drag-arrow" xmlns="http://www.w3.org/2000/svg">
-      <line id="drag-arrow-shadow"></line>
-      <line id="drag-arrow-line"></line>
-      <polygon id="drag-arrow-head"></polygon>
+      <defs>
+        <filter id="laser-glow" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="4" result="blur"></feGaussianBlur>
+          <feMerge>
+            <feMergeNode in="blur"></feMergeNode>
+            <feMergeNode in="SourceGraphic"></feMergeNode>
+          </feMerge>
+        </filter>
+        <linearGradient id="laser-grad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="100" y2="100">
+          <stop id="laser-stop-0" offset="0%" stop-color="#10ffa0"></stop>
+          <stop id="laser-stop-1" offset="55%" stop-color="#00f0ff"></stop>
+          <stop id="laser-stop-2" offset="100%" stop-color="#ff2a5f"></stop>
+        </linearGradient>
+      </defs>
+      <line id="drag-arrow-shadow" stroke="url(#laser-grad)" stroke-width="4" stroke-linecap="round" filter="url(#laser-glow)"></line>
+      <line id="drag-arrow-line" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="6 4"></line>
+      <g id="drag-source">
+        <circle id="drag-source-ring" class="reticle-spin" r="22" fill="none" stroke="#10ffa0" stroke-width="1.5" stroke-dasharray="4 4"></circle>
+        <circle id="drag-source-core" r="8" fill="#10ffa0" opacity="0.45"></circle>
+        <circle r="3.5" fill="#ffffff"></circle>
+      </g>
+      <g id="drag-reticle" display="none">
+        <circle class="reticle-spin" r="40" fill="none" stroke="#ff2a5f" stroke-width="2" stroke-dasharray="14 10"></circle>
+        <circle r="26" fill="rgba(255,42,95,0.16)" stroke="#ff2a5f" stroke-width="1.5"></circle>
+        <line x1="-34" y1="0" x2="-18" y2="0" stroke="#ff2a5f" stroke-width="2"></line>
+        <line x1="18" y1="0" x2="34" y2="0" stroke="#ff2a5f" stroke-width="2"></line>
+        <line x1="0" y1="-34" x2="0" y2="-18" stroke="#ff2a5f" stroke-width="2"></line>
+        <line x1="0" y1="18" x2="0" y2="34" stroke="#ff2a5f" stroke-width="2"></line>
+        <circle r="4" fill="#ff2a5f"></circle>
+      </g>
     </svg>
+    <div id="drag-badge" class="drag-badge">
+      <div class="drag-badge-kicker"><span class="drag-badge-ping"></span>Enlace de combate</div>
+      <div class="drag-badge-link"><span id="drag-from-name"></span><span class="drag-badge-arrow">&rarr;</span><span id="drag-to-name"></span></div>
+      <div class="drag-badge-hint">Suelta sobre el objetivo para confirmar</div>
+    </div>
   </div>
 
   <div id="overlay-setup" class="overlay is-open">
-    <div class="modal modal-wide">
-      <h1>MTG Life Counter</h1>
-      <p class="sub">Contador de vidas para Commander, compatible con iPad 2</p>
+    <div class="modal modal-wide modal-cal">
+      <header class="cal-head">
+        <div>
+          <div class="cal-title-row">
+            <span class="cal-ping"></span>
+            <h1>MTG // Life Counter</h1>
+          </div>
+          <p class="cal-protocol">Protocolo Commander // mesa t&aacute;ctica</p>
+        </div>
+        <div class="cal-badge">SYS<br>ONLINE</div>
+      </header>
 
       <div id="continue-wrap" class="hidden">
-        <button type="button" class="btn-gold" id="btn-continue">Continuar partida</button>
+        <button type="button" class="btn-gold btn-lg" id="btn-continue">Continuar partida</button>
       </div>
 
-      <h2>Jugadores</h2>
-      <div id="count-row" class="choice-row"></div>
+      <section class="cal-section">
+        <div class="cal-label-row">
+          <h2>Cantidad de operadores</h2>
+          <span class="cal-meta" id="count-meta">Seleccionado: 4</span>
+        </div>
+        <div id="count-row" class="choice-row"></div>
+      </section>
 
-      <h2>Disposición de la mesa</h2>
-      <p class="sub">Cambia según cuántos juegan. Los números son el orden de los jugadores.</p>
-      <div id="layout-row" class="layout-row"></div>
+      <section class="cal-section">
+        <div class="cal-label-row">
+          <h2>Disposici&oacute;n t&aacute;ctica</h2>
+          <span class="cal-meta">Rotaci&oacute;n seg&uacute;n asiento</span>
+        </div>
+        <div id="layout-row" class="layout-row"></div>
+      </section>
 
-      <h2>Vida inicial</h2>
-      <div class="choice-row">
-        <button type="button" class="choice" data-life="20">20<br><small>Estandar</small></button>
-        <button type="button" class="choice" data-life="30">30<br><small>Two-Headed</small></button>
-        <button type="button" class="choice selected" data-life="40">40<br><small>Commander</small></button>
-      </div>
+      <section class="cal-section">
+        <div class="cal-label-row">
+          <h2>Integridad inicial</h2>
+          <span class="cal-meta">Formato MTG</span>
+        </div>
+        <div class="choice-row life-grid">
+          <button type="button" class="choice life-choice" data-life="20"><strong>20</strong><small>Est&aacute;ndar</small></button>
+          <button type="button" class="choice life-choice" data-life="30"><strong>30</strong><small>Two-Headed</small></button>
+          <button type="button" class="choice life-choice selected" data-life="40"><strong>40</strong><small>Commander</small></button>
+        </div>
+      </section>
 
       <div class="start-row">
-        <button type="button" class="btn-gold btn-lg" id="btn-start">Empezar partida</button>
+        <button type="button" class="btn-gold btn-lg" id="btn-start">Iniciar enlace</button>
       </div>
-      <p class="hint">En el iPad: Safari &rarr; Compartir &rarr; A&ntilde;adir a pantalla de inicio para pantalla completa.</p>
+      <p class="hint">Safari &rarr; Compartir &rarr; A&ntilde;adir a pantalla de inicio para pantalla completa.</p>
     </div>
   </div>
 
@@ -194,8 +249,17 @@
   </div>
 
   <div id="overlay-menu" class="overlay">
-    <div class="modal">
-      <h2>Menú</h2>
+    <div class="modal modal-cal">
+      <header class="cal-head">
+        <div>
+          <div class="cal-title-row">
+            <span class="cal-ping"></span>
+            <h2>Men&uacute; de mesa</h2>
+          </div>
+          <p class="cal-protocol">Herramientas y control de partida</p>
+        </div>
+        <div class="cal-badge">HUD<br>ONLINE</div>
+      </header>
       <h3>Partida</h3>
       <button type="button" class="menu-item" id="btn-new" data-act="new">Nueva partida</button>
       <button type="button" class="menu-item" id="btn-fs" data-act="fs">Pantalla completa</button>
@@ -226,7 +290,7 @@
         </div>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn-gold" id="btn-menu-close">Listo</button>
+        <button type="button" class="btn-gold btn-lg" id="btn-menu-close">Cerrar</button>
       </div>
     </div>
   </div>
@@ -237,12 +301,12 @@
       <p class="sub" id="strike-sub"></p>
       <div id="strike-value" class="strike-value">1</div>
       <div class="strike-row">
-        <button type="button" class="btn" id="strike-minus" data-act="strike-minus">-</button>
-        <button type="button" class="btn" id="strike-plus" data-act="strike-plus">+</button>
+        <button type="button" class="btn" id="strike-minus" data-act="strike-minus">-1</button>
+        <button type="button" class="btn" id="strike-plus" data-act="strike-plus">+1</button>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn" id="strike-cancel" data-act="strike-cancel">Cancelar</button>
-        <button type="button" class="btn-gold" id="strike-ok" data-act="strike-ok">Aplicar</button>
+        <button type="button" class="btn-gold" id="strike-ok" data-act="strike-ok">Asignar</button>
       </div>
     </div>
   </div>
@@ -269,6 +333,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=82"></script>
+  <script src="js/app.js?v=85"></script>
 </body>
 </html>
