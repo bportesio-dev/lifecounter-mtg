@@ -70,7 +70,9 @@
     history: [],
     strikeFrom: -1,
     strikeTo: -1,
-    strikeAmount: 1,
+    strikeAmount: 0,
+    strikeCmd: 0,
+    strikeCmdB: 0,
     hadWinner: false
   };
 
@@ -158,6 +160,20 @@
 
   function pad2(n) {
     return n < 10 ? '0' + n : '' + n;
+  }
+
+  function lifeText(n) {
+    var sign = '';
+    var abs;
+    n = parseInt(n, 10);
+    if (isNaN(n)) {
+      n = 0;
+    }
+    if (n < 0) {
+      sign = '-';
+    }
+    abs = Math.abs(n);
+    return sign + (abs < 10 ? '0' + abs : '' + abs);
   }
 
   function formatTime(sec) {
@@ -547,7 +563,7 @@
     for (i = list.length - 1; i >= 0; i--) {
       n = list[i];
       rank = list.length - 1 - i;
-      text = (n > 0 ? '+' : '') + n;
+      text = (n > 0 ? '+' : '') + lifeText(n);
       html += '<span class="hist-item hist-z' + rank + ' ' + (n < 0 ? 'hist-down' : 'hist-up') + '">' + text + '</span>';
     }
     return html;
@@ -1592,13 +1608,13 @@
       label = 'Daño comandante ' + escapeHtml(String(v.label || '').replace(/^Jugador/i, 'jugador'));
       addClass(panel, 'cmd-mode');
     }
-    pending = v.type === 'life' && ui.strikeTo === index && hasClass($('overlay-strike'), 'is-open');
+    pending = v.type === 'life' && ui.strikeTo === index && hasClass($('overlay-strike'), 'is-open') && strikeLifeDelta() !== 0;
     toggleClass(seat, 'strike-pending', pending);
     if (pending) {
-      nextLife = p.life - ui.strikeAmount;
-      lifeEl.innerHTML = '<span class="life-old">' + p.life + '</span><span class="life-next">' + nextLife + '</span>';
+      nextLife = p.life - strikeLifeDelta();
+      lifeEl.innerHTML = '<span class="life-old">' + lifeText(p.life) + '</span><span class="life-next">' + lifeText(nextLife) + '</span>';
     } else {
-      lifeEl.innerHTML = String(value);
+      lifeEl.innerHTML = lifeText(value);
     }
     caption.innerHTML = label;
     integrityEl = seat.getElementsByClassName('integrity')[0];
@@ -1627,7 +1643,7 @@
         }
         integrityFill.style.width = barLife + '%';
         if (pending) {
-          integrityLabel.innerHTML = 'DAÑO INMINENTE // -' + ui.strikeAmount + ' HP';
+          integrityLabel.innerHTML = 'DAÑO INMINENTE // ' + strikePendingLabel();
         } else if (overLife > 0) {
           integrityLabel.innerHTML = 'OVERCLOCKED // +' + overLife;
         } else {
@@ -1642,7 +1658,7 @@
     slot = ui.deltas[index];
     if (deltaEl) {
       if (slot && slot.value && slot.key === deltaKey) {
-        deltaEl.innerHTML = (slot.value > 0 ? '+' : '') + slot.value;
+        deltaEl.innerHTML = (slot.value > 0 ? '+' : '') + lifeText(slot.value);
       } else {
         deltaEl.innerHTML = '';
       }
@@ -2200,6 +2216,7 @@
 
   function commanderControlAt(x, y) {
     var bars = document.getElementsByClassName('cmd-bar');
+    var top;
     var i;
     var j;
     var bar;
@@ -2211,6 +2228,10 @@
     var cx;
     var cy;
     var d;
+    top = document.elementFromPoint(x, y);
+    if (top && closest(top, '.overlay')) {
+      return null;
+    }
     for (i = 0; i < bars.length; i++) {
       bar = bars[i];
       r = bar.getBoundingClientRect();
@@ -2476,14 +2497,87 @@
     showArrow(x1, y1, x2, y2, tx, ty, fromColor, toColor, locked, fromIndex, toIndex);
   }
 
+  function strikeLifeDelta() {
+    var attacker = state.players[ui.strikeFrom];
+    var delta = ui.strikeAmount || 0;
+    delta += ui.strikeCmd || 0;
+    if (attacker && attacker.partners) {
+      delta += ui.strikeCmdB || 0;
+    }
+    return delta;
+  }
+
+  function strikePendingLabel() {
+    var loss = strikeLifeDelta();
+    var text = (loss > 0 ? '-' : loss < 0 ? '+' : '') + lifeText(Math.abs(loss)) + ' HP';
+    return text;
+  }
+
+  function strikeHpText(amount) {
+    var n = amount || 0;
+    return (n > 0 ? '-' : '') + lifeText(n) + ' HP';
+  }
+
+  function paintCmdValue(el, value) {
+    if (!el) {
+      return;
+    }
+    el.innerHTML = strikeHpText(value || 0);
+  }
+
   function paintStrikeReadout() {
     var target = ui.strikeTo;
     if ($('strike-value')) {
-      $('strike-value').innerHTML = '-' + ui.strikeAmount + ' HP';
+      $('strike-value').innerHTML = strikeHpText(ui.strikeAmount || 0);
     }
+    paintCmdValue($('strike-cmd-value'), ui.strikeCmd || 0);
+    paintCmdValue($('strike-cmd-b-value'), ui.strikeCmdB || 0);
     if (target >= 0 && state.players[target]) {
       updateSeat(target);
     }
+  }
+
+  function nudgeStrikeAmount(dir) {
+    var next = (ui.strikeAmount || 0) + dir;
+    if (next < 0) {
+      next = 0;
+    }
+    if (next > 99) {
+      next = 99;
+    }
+    if (next === ui.strikeAmount) {
+      return;
+    }
+    ui.strikeAmount = next;
+    sfxTick(dir > 0);
+    paintStrikeReadout();
+  }
+
+  function nudgeStrikeCmd(field, dir) {
+    var next = (ui[field] || 0) + dir;
+    if (next < 0) {
+      next = 0;
+    }
+    if (next > 99) {
+      next = 99;
+    }
+    if (next === ui[field]) {
+      return;
+    }
+    ui[field] = next;
+    sfxTick(dir > 0);
+    paintStrikeReadout();
+  }
+
+  function resetStrikeModal() {
+    ui.strikeAmount = 0;
+    ui.strikeCmd = 0;
+    ui.strikeCmdB = 0;
+    if ($('strike-value')) {
+      $('strike-value').innerHTML = strikeHpText(0);
+    }
+    paintCmdValue($('strike-cmd-value'), 0);
+    paintCmdValue($('strike-cmd-b-value'), 0);
   }
 
   function openStrike(fromIndex, toIndex) {
@@ -2494,7 +2588,16 @@
     }
     ui.strikeFrom = fromIndex;
     ui.strikeTo = toIndex;
-    ui.strikeAmount = 1;
+    resetStrikeModal();
+    syncCommanderMaps();
+    if (a.partners) {
+      removeClass($('strike-cmd-b'), 'hidden');
+      $('strike-cmd-label').innerHTML = 'CMD 1';
+      $('strike-cmd-b-label').innerHTML = 'CMD 2';
+    } else {
+      addClass($('strike-cmd-b'), 'hidden');
+      $('strike-cmd-label').innerHTML = 'CMD';
+    }
     $('strike-title').innerHTML = 'Enlace de combate táctico';
     $('strike-from').innerHTML = escapeHtml(a.name);
     $('strike-from').style.color = a.color || '#10ffa0';
@@ -2506,32 +2609,70 @@
 
   function applyStrike() {
     var defender;
-    var amount = ui.strikeAmount;
-    if (ui.strikeTo < 0 || !state.players[ui.strikeTo]) {
+    var attacker;
+    var target = ui.strikeTo;
+    var source = ui.strikeFrom;
+    var amount = ui.strikeAmount || 0;
+    var key;
+    var keyB;
+    var cmdDelta;
+    var cmdDeltaB;
+    if (target < 0 || !state.players[target] || source < 0 || !state.players[source]) {
       closeOverlay('overlay-strike');
+      resetStrikeModal();
       return;
     }
-    if (amount < 1) {
-      amount = 1;
+    if (amount < 0) {
+      amount = 0;
     }
-    defender = state.players[ui.strikeTo];
-    sfxImpact();
-    defender.life -= amount;
-    if (!state.damageLog) {
-      state.damageLog = [];
+    defender = state.players[target];
+    attacker = state.players[source];
+    if (!defender.cmd) {
+      defender.cmd = {};
     }
-    state.damageLog.push({
-      turn: state.turn || 1,
-      from: ui.strikeFrom,
-      to: ui.strikeTo,
-      amount: amount
-    });
-    noteLife();
-    save();
+    key = attacker.id;
+    cmdDelta = ui.strikeCmd || 0;
+    cmdDeltaB = 0;
+    keyB = key + 'b';
+    if (attacker.partners) {
+      cmdDeltaB = ui.strikeCmdB || 0;
+    }
     closeOverlay('overlay-strike');
-    bumpDelta(ui.strikeTo, -amount, 'life');
+    resetStrikeModal();
     ui.strikeFrom = -1;
     ui.strikeTo = -1;
+    if (!amount && !cmdDelta && !cmdDeltaB) {
+      updateSeat(target);
+      return;
+    }
+    sfxImpact();
+    defender.life -= amount + cmdDelta + cmdDeltaB;
+    defender.cmd[key] = cmdAmount(defender, key) + cmdDelta;
+    if (attacker.partners) {
+      defender.cmd[keyB] = cmdAmount(defender, keyB) + cmdDeltaB;
+    }
+    if (amount > 0) {
+      if (!state.damageLog) {
+        state.damageLog = [];
+      }
+      state.damageLog.push({
+        turn: state.turn || 1,
+        from: source,
+        to: target,
+        amount: amount
+      });
+    }
+    noteLife();
+    save();
+    if (amount) {
+      bumpDelta(target, -amount, 'life');
+    }
+    if (cmdDelta) {
+      bumpDelta(target, cmdDelta, key);
+    }
+    if (cmdDeltaB) {
+      bumpDelta(target, cmdDeltaB, keyB);
+    }
     renderAll();
   }
 
@@ -2668,7 +2809,51 @@
 
   var sfxAim = null;
   var sfxShot = null;
+  var sfxCtx = null;
   var sfxLockIndex = -1;
+
+  function sfxInit() {
+    var Ctx;
+    if (!sfxCtx) {
+      Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) {
+        return null;
+      }
+      try {
+        sfxCtx = new Ctx();
+      } catch (err) {
+        return null;
+      }
+    }
+    if (sfxCtx.state === 'suspended' && sfxCtx.resume) {
+      try {
+        sfxCtx.resume();
+      } catch (errResume) {}
+    }
+    return sfxCtx;
+  }
+
+  function sfxTick(up) {
+    var ctx;
+    var osc;
+    var gain;
+    try {
+      ctx = sfxInit();
+      if (!ctx) {
+        return;
+      }
+      osc = ctx.createOscillator();
+      gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(up ? 900 : 500, ctx.currentTime);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.05);
+    } catch (err) {}
+  }
 
   function sfxClip(src) {
     var audio;
@@ -2725,6 +2910,7 @@
 
   function sfxUnlock() {
     sfxEnsure();
+    sfxInit();
     sfxPrime(sfxAim);
     sfxPrime(sfxShot);
   }
@@ -2768,6 +2954,49 @@
     sfxPlay(sfxShot);
   }
 
+  function sfxIsMinus(el) {
+    var node;
+    var dir;
+    var text;
+    var k;
+    if (!el) {
+      return false;
+    }
+    node = closest(el, '.hit') || closest(el, 'button') || closest(el, '.key') || el;
+    if (!node || !node.getAttribute) {
+      return false;
+    }
+    if (node.id && node.id.indexOf('minus') !== -1) {
+      return true;
+    }
+    if (node.className && String(node.className).indexOf('step-down') !== -1) {
+      return true;
+    }
+    if (node.getAttribute('data-act') === 'turn-prev') {
+      return true;
+    }
+    dir = node.getAttribute('data-dir') || node.getAttribute('data-cdir') || node.getAttribute('data-cmddir');
+    if (dir && parseInt(dir, 10) < 0) {
+      return true;
+    }
+    k = node.getAttribute('data-k');
+    if (k === '-') {
+      return true;
+    }
+    text = (node.textContent || '').replace(/^\s+|\s+$/g, '');
+    return text === '-' || text === '-1';
+  }
+
+  function sfxButton(el, act) {
+    if (act && act.indexOf('strike-') === 0 && act !== 'strike-cancel') {
+      return;
+    }
+    if (!act && !closest(el, 'button') && !closest(el, '.hit') && !closest(el, '.choice') && !closest(el, '.swatch') && !closest(el, '.key') && !closest(el, '.menu-item') && !closest(el, '.layout-card') && !closest(el, '.first-player') && !closest(el, '.suggest-item')) {
+      return;
+    }
+    sfxTick(!sfxIsMinus(el));
+  }
+
   function bindPointer(root) {
     var startX = 0;
     var startY = 0;
@@ -2786,6 +3015,29 @@
         clearTimeout(longTimer);
         longTimer = null;
       }
+    }
+
+    function strikeHoldButton(el) {
+      var btn = closest(el, 'button');
+      var act;
+      if (!btn || !closest(btn, '#overlay-strike')) {
+        return null;
+      }
+      act = btn.getAttribute('data-act') || '';
+      if (act === 'strike-minus' || act === 'strike-plus' || act === 'strike-cmd-minus' || act === 'strike-cmd-plus' || act === 'strike-cmd-b-minus' || act === 'strike-cmd-b-plus') {
+        return btn;
+      }
+      return null;
+    }
+
+    function armHold(el) {
+      pressHit(el, true);
+      longTimer = setTimeout(function () {
+        longFired = true;
+        pressHit(null, false);
+        handleTap(el, true);
+        ui.suppressClick = true;
+      }, 420);
     }
 
     function pressHit(el, onFlag) {
@@ -2892,6 +3144,7 @@
         if (overlay.id === 'overlay-strike') {
           cancelTarget = ui.strikeTo;
           closeOverlay('overlay-strike');
+          resetStrikeModal();
           ui.strikeFrom = -1;
           ui.strikeTo = -1;
           if (cancelTarget >= 0 && state.players[cancelTarget]) {
@@ -2917,6 +3170,8 @@
           el = el.parentNode;
         }
       }
+
+      sfxButton(el, act || '');
 
       if (act === 'hub') {
         if (hasClass(document.body, 'is-fs')) {
@@ -3017,22 +3272,33 @@
         return;
       }
       if (act === 'strike-minus') {
-        if (ui.strikeAmount > 1) {
-          ui.strikeAmount -= 1;
-        }
-        paintStrikeReadout();
+        nudgeStrikeAmount(isHold ? -10 : -1);
         return;
       }
       if (act === 'strike-plus') {
-        if (ui.strikeAmount < 99) {
-          ui.strikeAmount += 1;
-        }
-        paintStrikeReadout();
+        nudgeStrikeAmount(isHold ? 10 : 1);
+        return;
+      }
+      if (act === 'strike-cmd-minus') {
+        nudgeStrikeCmd('strikeCmd', isHold ? -10 : -1);
+        return;
+      }
+      if (act === 'strike-cmd-plus') {
+        nudgeStrikeCmd('strikeCmd', isHold ? 10 : 1);
+        return;
+      }
+      if (act === 'strike-cmd-b-minus') {
+        nudgeStrikeCmd('strikeCmdB', isHold ? -10 : -1);
+        return;
+      }
+      if (act === 'strike-cmd-b-plus') {
+        nudgeStrikeCmd('strikeCmdB', isHold ? 10 : 1);
         return;
       }
       if (act === 'strike-cancel') {
         var cancelTarget = ui.strikeTo;
         closeOverlay('overlay-strike');
+        resetStrikeModal();
         ui.strikeFrom = -1;
         ui.strikeTo = -1;
         if (cancelTarget >= 0 && state.players[cancelTarget]) {
@@ -3380,14 +3646,11 @@
       }
       clearLong();
       hit = closest(startEl, '.cmd-bar') ? null : closest(startEl, '.hit');
+      if (!hit) {
+        hit = strikeHoldButton(startEl);
+      }
       if (hit) {
-        pressHit(hit, true);
-        longTimer = setTimeout(function () {
-          longFired = true;
-          pressHit(null, false);
-          handleTap(hit, true);
-          ui.suppressClick = true;
-        }, 420);
+        armHold(hit);
       }
     });
 
@@ -3503,17 +3766,11 @@
         sfxUnlock();
       }
       longFired = false;
-      hit = closest(e.target, '.hit');
+      hit = closest(e.target, '.hit') || strikeHoldButton(e.target);
       if (!hit) {
         return;
       }
-      pressHit(hit, true);
-      longTimer = setTimeout(function () {
-        longFired = true;
-        pressHit(null, false);
-        handleTap(hit, true);
-        ui.suppressClick = true;
-      }, 420);
+      armHold(hit);
     });
 
     on(root, 'mousemove', function (e) {

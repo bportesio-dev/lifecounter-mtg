@@ -2735,9 +2735,9 @@ html,
 }
 
 #overlay-strike .modal {
-  width: auto;
-  max-width: 96%;
-  padding: 12px 20px;
+  width: 300px;
+  max-width: 92%;
+  padding: 14px 16px 12px;
   border: 2px solid #00f0ff;
   border-radius: 12px;
   background: rgba(12, 16, 26, 0.96);
@@ -2763,14 +2763,13 @@ html,
   display: -webkit-box;
   display: -webkit-flex;
   display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+  -webkit-flex-direction: column;
+  flex-direction: column;
   -webkit-box-align: center;
   -webkit-align-items: center;
   align-items: center;
-  -webkit-box-pack: center;
-  -webkit-justify-content: center;
-  justify-content: center;
-  -webkit-flex-wrap: nowrap;
-  flex-wrap: nowrap;
 }
 
 .strike-ping {
@@ -2796,12 +2795,23 @@ html,
   50% { opacity: 0.3; }
 }
 
+.strike-head {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  margin: 0 0 10px;
+}
+
 .strike-who {
-  margin: 0 8px 0 0;
+  margin: 0;
   text-align: left;
   white-space: nowrap;
-  -webkit-flex-shrink: 0;
-  flex-shrink: 0;
 }
 
 .strike-kicker {
@@ -2840,10 +2850,10 @@ html,
 }
 
 .strike-sep {
-  display: inline-block;
-  width: 1px;
-  height: 32px;
-  margin: 0 12px;
+  display: block;
+  width: 100%;
+  height: 1px;
+  margin: 0 0 12px;
   background: #1f2d45;
 }
 
@@ -2854,14 +2864,28 @@ html,
   -webkit-box-align: center;
   -webkit-align-items: center;
   align-items: center;
-  margin: 0 8px 0 0;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  width: 100%;
+  margin: 0 0 10px;
   white-space: nowrap;
-  -webkit-flex-shrink: 0;
-  flex-shrink: 0;
+}
+
+.strike-kind {
+  width: 42px;
+  margin-right: 8px;
+  font-family: "Share Tech Mono", Courier, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: right;
+  color: #94a3b8;
 }
 
 #strike-minus,
-#strike-plus {
+#strike-plus,
+.strike-step {
   width: 28px;
   height: 28px;
   padding: 0;
@@ -2874,18 +2898,23 @@ html,
   text-align: center;
 }
 
-#strike-minus {
+#strike-minus,
+.strike-step-down {
   border: 1px solid rgba(255, 42, 95, 0.5);
   color: #ff2a5f;
 }
 
-#strike-plus {
+#strike-plus,
+.strike-step-up {
   margin-left: 8px;
   border: 1px solid rgba(16, 255, 160, 0.5);
   color: #10ffa0;
 }
 
-#strike-value {
+#strike-value,
+.strike-cmd-val {
+  min-width: 88px;
+  white-space: nowrap;
   margin: 0 0 0 8px;
   padding: 4px 12px;
   background: rgba(255, 42, 95, 0.2);
@@ -2896,13 +2925,25 @@ html,
   font-size: 20px;
   font-weight: 700;
   line-height: 1.15;
+  text-align: center;
   text-shadow: 0 0 12px rgba(255, 42, 95, 0.65);
+}
+
+.strike-actions {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 4px;
 }
 
 #strike-cancel,
 #strike-ok {
-  margin: 0 0 0 8px;
-  padding: 7px 12px;
+  margin: 0 6px;
+  padding: 8px 14px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 700;

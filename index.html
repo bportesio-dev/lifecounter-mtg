@@ -17,7 +17,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <meta name="theme-color" content="#06080e">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Chakra+Petch:600,700|Rajdhani:500,600,700|Share+Tech+Mono">
-  <link rel="stylesheet" href="css/app.css?v=90">
+  <link rel="stylesheet" href="css/app.css?v=95">
 </head>
 <body>
   <div id="app">
@@ -297,23 +297,40 @@
 
   <div id="overlay-strike" class="overlay">
     <div class="modal strike-cal">
-      <span class="strike-ping"></span>
-      <div class="strike-who">
-        <div class="strike-kicker" id="strike-title">Enlace de combate táctico</div>
-        <div class="strike-link">
-          <span id="strike-from"></span>
-          <span class="strike-arrow">&#8594;</span>
-          <span id="strike-to"></span>
+      <div class="strike-head">
+        <span class="strike-ping"></span>
+        <div class="strike-who">
+          <div class="strike-kicker" id="strike-title">Enlace de combate táctico</div>
+          <div class="strike-link">
+            <span id="strike-from"></span>
+            <span class="strike-arrow">&#8594;</span>
+            <span id="strike-to"></span>
+          </div>
         </div>
       </div>
       <span class="strike-sep"></span>
       <div class="strike-amount">
+        <span class="strike-kind">HP</span>
         <button type="button" id="strike-minus" data-act="strike-minus">-1</button>
-        <div id="strike-value">-1 HP</div>
+        <div id="strike-value">00 HP</div>
         <button type="button" id="strike-plus" data-act="strike-plus">+1</button>
       </div>
-      <button type="button" id="strike-cancel" data-act="strike-cancel">Cancelar</button>
-      <button type="button" id="strike-ok" data-act="strike-ok"><svg class="strike-flame" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.2 2.2s.4 3.4-1.5 5.6c-1.2 1.4-1.1 3-.4 4.1 1.7-.7 2.5-2.3 2.6-3.6 2.3 1.7 3.9 4.4 3.9 7.4 0 4.7-3.7 8.3-8.4 8.3S.1 20.4.1 15.7c0-3.8 2.3-6.7 4.4-8.8 0 2.4 1.3 3.8 1.3 3.8S6.8 6.2 12.2 2.2z"></path></svg>Asignar</button>
+      <div class="strike-amount" id="strike-cmd">
+        <span class="strike-kind" id="strike-cmd-label">CMD</span>
+        <button type="button" class="strike-step strike-step-down" id="strike-cmd-minus" data-act="strike-cmd-minus">-1</button>
+        <div class="strike-cmd-val" id="strike-cmd-value">00 HP</div>
+        <button type="button" class="strike-step strike-step-up" id="strike-cmd-plus" data-act="strike-cmd-plus">+1</button>
+      </div>
+      <div class="strike-amount hidden" id="strike-cmd-b">
+        <span class="strike-kind" id="strike-cmd-b-label">CMD 2</span>
+        <button type="button" class="strike-step strike-step-down" id="strike-cmd-b-minus" data-act="strike-cmd-b-minus">-1</button>
+        <div class="strike-cmd-val" id="strike-cmd-b-value">00 HP</div>
+        <button type="button" class="strike-step strike-step-up" id="strike-cmd-b-plus" data-act="strike-cmd-b-plus">+1</button>
+      </div>
+      <div class="strike-actions">
+        <button type="button" id="strike-cancel" data-act="strike-cancel">Cancelar</button>
+        <button type="button" id="strike-ok" data-act="strike-ok"><svg class="strike-flame" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.2 2.2s.4 3.4-1.5 5.6c-1.2 1.4-1.1 3-.4 4.1 1.7-.7 2.5-2.3 2.6-3.6 2.3 1.7 3.9 4.4 3.9 7.4 0 4.7-3.7 8.3-8.4 8.3S.1 20.4.1 15.7c0-3.8 2.3-6.7 4.4-8.8 0 2.4 1.3 3.8 1.3 3.8S6.8 6.2 12.2 2.2z"></path></svg>Asignar</button>
+      </div>
     </div>
   </div>
 
@@ -339,6 +356,6 @@
     </div>
   </div>
 
-  <script src="js/app.js?v=89"></script>
+  <script src="js/app.js?v=99"></script>
 </body>
 </html>
