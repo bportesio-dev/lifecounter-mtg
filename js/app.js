@@ -2807,8 +2807,8 @@
     $('life-chart').innerHTML = svg + '<div class="chart-legend">' + legend + '</div>';
   }
 
-  var sfxAim = null;
-  var sfxShot = null;
+  var sfxAim = { src: 'assets/recarga.mp3', data: null, buf: null, decoding: false, pending: false, loading: false };
+  var sfxShot = { src: 'assets/shoot.mp3', data: null, buf: null, decoding: false, pending: false, loading: false };
   var sfxCtx = null;
   var sfxLockIndex = -1;
 
@@ -2855,82 +2855,121 @@
     } catch (err) {}
   }
 
-  function sfxClip(src) {
-    var audio;
+  function sfxFetch(item) {
+    var xhr;
+    if (!item || item.loading || item.data || item.buf) {
+      return;
+    }
+    item.loading = true;
+    xhr = new XMLHttpRequest();
+    xhr.open('GET', item.src, true);
     try {
-      audio = new Audio(src);
-      audio.preload = 'auto';
-      return audio;
-    } catch (err) {
-      return null;
+      xhr.responseType = 'arraybuffer';
+    } catch (errType) {}
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) {
+        return;
+      }
+      item.loading = false;
+      if (xhr.status && (xhr.status < 200 || xhr.status >= 300)) {
+        return;
+      }
+      if (!xhr.response) {
+        return;
+      }
+      item.data = xhr.response;
+      if (sfxCtx && (!sfxCtx.state || sfxCtx.state === 'running')) {
+        sfxDecode(item);
+      }
+    };
+    try {
+      xhr.send(null);
+    } catch (errSend) {
+      item.loading = false;
     }
   }
 
   function sfxEnsure() {
-    if (!sfxAim) {
-      sfxAim = sfxClip('assets/recarga.mp3');
-    }
-    if (!sfxShot) {
-      sfxShot = sfxClip('assets/shoot.mp3');
-    }
+    sfxFetch(sfxAim);
+    sfxFetch(sfxShot);
   }
 
-  function sfxPrime(audio) {
-    var played;
-    if (!audio || audio._sfxReady) {
+  function sfxDecode(item) {
+    var ctx;
+    var data;
+    if (!item || item.buf || item.decoding || !item.data) {
       return;
     }
-    audio.volume = 0;
+    ctx = sfxInit();
+    if (!ctx || !ctx.decodeAudioData) {
+      return;
+    }
+    item.decoding = true;
     try {
-      played = audio.play();
-    } catch (err) {
-      audio.volume = 1;
-      return;
+      data = item.data.slice ? item.data.slice(0) : item.data;
+    } catch (errSlice) {
+      data = item.data;
     }
-    audio._sfxReady = true;
-    if (played && played.then) {
-      played.then(function () {
-        audio.pause();
-        try {
-          audio.currentTime = 0;
-        } catch (errSeek) {}
-        audio.volume = 1;
+    try {
+      ctx.decodeAudioData(data, function (buf) {
+        item.buf = buf;
+        item.decoding = false;
+        if (item.pending) {
+          sfxPlayItem(item);
+        }
       }, function () {
-        audio._sfxReady = false;
-        audio.volume = 1;
+        item.decoding = false;
       });
-      return;
+    } catch (errDec) {
+      item.decoding = false;
     }
-    try {
-      audio.pause();
-      audio.currentTime = 0;
-    } catch (errPause) {}
-    audio.volume = 1;
   }
 
   function sfxUnlock() {
-    sfxEnsure();
     sfxInit();
-    sfxPrime(sfxAim);
-    sfxPrime(sfxShot);
+    sfxEnsure();
+    sfxDecode(sfxAim);
+    sfxDecode(sfxShot);
   }
 
-  function sfxPlay(audio) {
-    var played;
-    if (!audio) {
+  function sfxPlayItem(item) {
+    var ctx;
+    var src;
+    var gain;
+    if (!item) {
       return;
     }
-    audio.volume = 1;
+    if (!item.buf) {
+      item.pending = true;
+      sfxUnlock();
+      return;
+    }
+    item.pending = false;
     try {
-      audio.pause();
-      audio.currentTime = 0;
-    } catch (errSeek) {}
-    try {
-      played = audio.play();
-      if (played && played.catch) {
-        played.catch(function () {});
+      ctx = sfxInit();
+      if (!ctx) {
+        return;
       }
-    } catch (errPlay) {}
+      src = ctx.createBufferSource();
+      gain = ctx.createGain();
+      src.buffer = item.buf;
+      try {
+        gain.gain.setValueAtTime(0.9, ctx.currentTime);
+      } catch (errGain) {
+        gain.gain.value = 0.9;
+      }
+      src.connect(gain);
+      gain.connect(ctx.destination);
+      if (src.start) {
+        src.start(0);
+      } else if (src.noteOn) {
+        src.noteOn(0);
+      }
+    } catch (err) {}
+  }
+
+  function sfxPlay(item) {
+    sfxPlayItem(item);
   }
 
   function sfxDragTarget(toIndex) {
@@ -3632,6 +3671,7 @@
       if (e.touches.length !== 1) {
         return;
       }
+      sfxUnlock();
       touchMode = true;
       t = e.touches[0];
       startX = t.clientX;
@@ -3752,6 +3792,7 @@
       if (e.button && e.button !== 0) {
         return;
       }
+      sfxUnlock();
       if (touchMode || commanderControlAt(e.clientX, e.clientY)) {
         return;
       }
@@ -4002,6 +4043,7 @@
     }
   });
 
+  sfxEnsure();
   buildStatic();
   preventZoom();
   bindPointer(document.body);
