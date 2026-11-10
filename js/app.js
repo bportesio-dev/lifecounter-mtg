@@ -3,6 +3,18 @@
 
   var STORAGE_KEY = 'mtgLifeCounter.v1';
   var COLORS = [
+    '#176842',
+    '#246CD8',
+    '#9C30F0',
+    '#FC5448',
+    '#D8CCCC',
+    '#00FCE4',
+    '#F0B43C',
+    '#FC8484',
+    '#FC9030',
+    '#3C9CA8'
+  ];
+  var LEGACY_COLORS = [
     '#1f7d3a',
     '#2a5c9e',
     '#6e38b0',
@@ -14,7 +26,7 @@
     '#8a1a5a',
     '#3a6b8a'
   ];
-  var COLOR_NAMES = ['Verde', 'Azul', 'Purpura', 'Rojo', 'Blanco', 'Teal', 'Oro', 'Violeta', 'Magenta', 'Grisazul'];
+  var COLOR_NAMES = ['Verde', 'Azul', 'Purpura', 'Rojo', 'Blanco', 'Cian', 'Amarillo', 'Rosa', 'Naranja', 'Teal'];
   var COUNTERS = [
     { key: 'poison', label: 'Veneno', lethal: 10 },
     { key: 'tax', label: 'Impuesto de comandante', lethal: 0 },
@@ -227,13 +239,129 @@
     return max < 80 && (max - min) < 28;
   }
 
+  function hexParts(color) {
+    var h = String(color || '').replace('#', '');
+    if (h.length === 3) {
+      h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+    }
+    if (h.length !== 6) {
+      return { r: 252, g: 84, b: 72 };
+    }
+    return {
+      r: parseInt(h.substring(0, 2), 16),
+      g: parseInt(h.substring(2, 4), 16),
+      b: parseInt(h.substring(4, 6), 16)
+    };
+  }
+
+  function channelLinear(v) {
+    v = v / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  }
+
+  function inkDark(color) {
+    var p = hexParts(color);
+    var L = 0.2126 * channelLinear(p.r) + 0.7152 * channelLinear(p.g) + 0.0722 * channelLinear(p.b);
+    return L > 0.18;
+  }
+
+  function isRedColor(color) {
+    return String(color || '').toLowerCase() === '#fc5448';
+  }
+
+  function isGreenColor(color) {
+    return String(color || '').toLowerCase() === '#176842';
+  }
+
+  function accentOf(color) {
+    if (isRedColor(color)) {
+      return '#f75049';
+    }
+    return color || '#e7e9ee';
+  }
+
+  function toneIndex(color) {
+    var i;
+    var c = String(color || '').toLowerCase();
+    for (i = 0; i < COLORS.length; i++) {
+      if (c === COLORS[i].toLowerCase()) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  function scaleHex(color, amount) {
+    var p = hexParts(color);
+    return 'rgb(' + Math.round(p.r * amount) + ',' + Math.round(p.g * amount) + ',' + Math.round(p.b * amount) + ')';
+  }
+
+  function clearTone(seat) {
+    var i;
+    for (i = 0; i < COLORS.length; i++) {
+      removeClass(seat, 'tone-c' + i);
+    }
+  }
+
+  function paintSeat(seat, panel, color, active) {
+    var p = hexParts(color);
+    var idx = toneIndex(color);
+    var glow = '0 0 12px rgba(' + p.r + ',' + p.g + ',' + p.b + ',0.4)';
+    var fill = color;
+    clearTone(seat);
+    if (idx !== -1) {
+      addClass(seat, 'tone-c' + idx);
+      toggleClass(seat, 'ink-dark', false);
+      if (isRedColor(color)) {
+        panel.style.border = '1px solid #9f3736';
+        if (active) {
+          fill = '#542226';
+          glow = '0 0 8px rgba(159, 55, 54, 0.35)';
+        } else {
+          fill = '#0e0e17';
+          glow = 'none';
+        }
+      } else if (active) {
+        fill = isGreenColor(color) ? '#0f2422' : scaleHex(color, 0.34);
+        panel.style.border = '1px solid ' + scaleHex(color, 0.62);
+        glow = '0 0 8px rgba(' + p.r + ',' + p.g + ',' + p.b + ',0.35)';
+      } else {
+        fill = '#0e0e17';
+        panel.style.border = '1px solid ' + scaleHex(color, 0.62);
+        glow = 'none';
+      }
+    } else {
+      panel.style.border = '1px solid rgba(7, 9, 13, 0.28)';
+      toggleClass(seat, 'ink-dark', inkDark(color));
+    }
+    panel.style.backgroundColor = fill;
+    seat.style.webkitBoxShadow = glow;
+    seat.style.boxShadow = glow;
+  }
+
   function fixPlayerColors() {
     var i;
+    var j;
     var changed = false;
+    var current;
     if (!state.players) {
       return;
     }
     for (i = 0; i < state.players.length; i++) {
+      current = String(state.players[i].color || '').toLowerCase();
+      for (j = 0; j < LEGACY_COLORS.length; j++) {
+        if (current === LEGACY_COLORS[j]) {
+          state.players[i].color = COLORS[j];
+          changed = true;
+          current = COLORS[j].toLowerCase();
+          break;
+        }
+      }
+      if (current === '#18f084') {
+        state.players[i].color = COLORS[0];
+        changed = true;
+        current = COLORS[0].toLowerCase();
+      }
       if (isBlackish(state.players[i].color)) {
         state.players[i].color = COLORS[2];
         changed = true;
@@ -1332,6 +1460,7 @@
     var v;
     var src;
     var val;
+    var accent;
     if (p.view > 0) {
       html += '<button type="button" class="cmd-back" data-act="cmd-back">Volver</button>';
     }
@@ -1339,13 +1468,14 @@
       v = views[i];
       src = state.players[v.src];
       val = p.cmd[v.key] || 0;
+      accent = val >= 21 ? '#f75049' : accentOf(src.color);
       html += '<button type="button" class="cmd-badge' +
         (p.view === i ? ' active' : '') +
         (val >= 21 ? ' lethal' : '') +
         '" data-act="cmd-src" data-view="' + i + '">' +
-        '<span class="cmd-dot" style="background:' + src.color + '"></span>' +
-        (src.partners ? '<span class="cmd-mark">' + (v.partner ? '2' : '1') + '</span>' : '') +
-        '<span class="cmd-badge-n">' + val + '</span></button>';
+        '<span class="cmd-dot" style="background:' + accent + ';box-shadow:0 0 8px ' + accent + '"></span>' +
+        (src.partners ? '<span class="cmd-mark" style="color:' + accent + ';text-shadow:0 0 6px ' + accent + '">' + (v.partner ? '2' : '1') + '</span>' : '') +
+        '<span class="cmd-badge-n" style="color:' + accent + ';text-shadow:0 0 6px ' + accent + '">' + val + '</span></button>';
     }
     return html;
   }
@@ -1376,7 +1506,7 @@
     var htmlBadges;
     var htmlStats;
 
-    panel.style.backgroundColor = (v.type === 'cmd' && state.players[v.src]) ? state.players[v.src].color : p.color;
+    paintSeat(seat, panel, (v.type === 'cmd' && state.players[v.src]) ? state.players[v.src].color : p.color, index === state.active);
     panel.style.backgroundImage = 'none';
     if (v.type !== 'cmd' && p.bgArt && artEl) {
       src = toArtCrop(p.bgArt);
@@ -1464,7 +1594,6 @@
     }
     toggleClass(dead, 'show', showLost(p));
     toggleClass(seat, 'is-turn', index === state.active);
-    toggleClass(seat, 'waiting', index !== state.active);
   }
 
   function escapeHtml(s) {
@@ -3129,7 +3258,9 @@
         }
         preview += '<span class="mini-seat" style="left:' + b.x + 'px;top:' + b.y +
           'px;width:' + b.w + 'px;height:' + b.h + 'px;line-height:' + b.h +
-          'px;background:' + COLORS[j % COLORS.length] + '">' + (j + 1) + '</span>';
+          'px;background:#0e0e17;color:' + (isRedColor(COLORS[j % COLORS.length]) ? '#f75049' : COLORS[j % COLORS.length]) +
+          ';border:1px solid ' + (isRedColor(COLORS[j % COLORS.length]) ? '#9f3736' : scaleHex(COLORS[j % COLORS.length], 0.62)) +
+          '">' + (j + 1) + '</span>';
       }
       html += '<button type="button" class="layout-card' + (opt.id === state.layoutId ? ' selected' : '') +
         '" data-layout="' + opt.id + '"><div class="layout-preview">' + preview +
