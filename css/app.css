@@ -545,13 +545,15 @@ body.is-fs #winner-banner {
   display: block;
   position: absolute;
   left: 8px;
-  top: 0;
+  top: 8px;
   width: 36px;
   height: 36px;
   padding: 0;
-  background: rgba(0, 0, 0, 0.42);
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: #0e0e17;
+  border-radius: 2px;
+  border: 1px solid #9f3736;
+  -webkit-box-shadow: none;
+  box-shadow: none;
   overflow: hidden;
 }
 
@@ -589,7 +591,7 @@ body.is-fs #winner-banner {
   left: 10px;
   width: 16px;
   height: 2px;
-  background: #fff;
+  background: #f75049;
 }
 
 .menu-bars {
@@ -1196,26 +1198,25 @@ body.is-fs #winner-banner {
 }
 
 #drag-arrow-shadow {
-  stroke: rgba(0, 0, 0, 0.75);
-  stroke-width: 8;
+  stroke: rgba(247, 80, 73, 0.45);
+  stroke-width: 12;
   stroke-linecap: round;
 }
 
 #drag-arrow-line {
-  stroke: #fff;
-  stroke-width: 4;
+  stroke: #f75049;
+  stroke-width: 3;
   stroke-linecap: round;
 }
 
 #drag-arrow-head {
-  fill: #fff;
-  stroke: rgba(0, 0, 0, 0.75);
-  stroke-width: 2;
+  fill: #f75049;
+  stroke: none;
 }
 
 .seat.strike-target .panel {
-  -webkit-box-shadow: inset 0 0 0 4px #fff;
-  box-shadow: inset 0 0 0 4px #fff;
+  -webkit-box-shadow: inset 0 0 0 2px #f75049;
+  box-shadow: inset 0 0 0 2px #f75049;
 }
 
 .seat.is-turn .panel {
@@ -1227,18 +1228,20 @@ body.is-fs #winner-banner {
   display: none;
   position: absolute;
   left: 50%;
-  bottom: 70px;
+  bottom: 108px;
   width: 112px;
   height: 36px;
   margin-left: -56px;
   z-index: 7;
-  background: #ff4d4d;
-  color: #111;
+  background: transparent;
+  color: #fff;
   font-weight: bold;
   font-size: 14px;
   line-height: 36px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 0;
+  -webkit-box-shadow: none;
+  box-shadow: none;
 }
 
 .seat.is-turn .btn-next {
@@ -1246,7 +1249,7 @@ body.is-fs #winner-banner {
 }
 
 .tight .btn-next {
-  bottom: 52px;
+  bottom: 82px;
   width: 96px;
   height: 30px;
   margin-left: -48px;
@@ -1980,7 +1983,8 @@ input[type="text"]:focus {
   .first-player:hover,
   .layout-card:hover,
   .suggest-item:hover,
-  #overlay-menu .menu-item:hover {
+  #overlay-menu .menu-item:hover,
+  .btn-menu:hover {
     background: #542226;
     border-color: #9f3736;
     color: #f75049;
@@ -2004,7 +2008,6 @@ input[type="text"]:focus {
 }
 
 .btn-gold,
-.btn-next,
 #winner-banner,
 .choice.selected,
 .choice.selected:hover,
@@ -2022,6 +2025,25 @@ input[type="text"]:focus {
   color: #14080a;
   -webkit-box-shadow: 0 0 12px rgba(247, 80, 73, 0.45);
   box-shadow: 0 0 12px rgba(247, 80, 73, 0.45);
+}
+
+.btn-next {
+  background: transparent;
+  border-color: transparent;
+  color: #fff;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+}
+
+.btn-menu:active {
+  background: #f75049;
+  border-color: #f75049;
+}
+
+.btn-menu:active .menu-bars,
+.btn-menu:active .menu-bars:before,
+.btn-menu:active .menu-bars:after {
+  background: #14080a;
 }
 
 .choice.selected small,

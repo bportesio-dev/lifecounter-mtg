@@ -306,7 +306,7 @@
   function paintSeat(seat, panel, color, active) {
     var p = hexParts(color);
     var idx = toneIndex(color);
-    var glow = '0 0 12px rgba(' + p.r + ',' + p.g + ',' + p.b + ',0.4)';
+    var glow = '0 0 12px rgba(' + p.r + ',' + p.g + ',' + p.b + ',0.45)';
     var fill = color;
     clearTone(seat);
     if (idx !== -1) {
@@ -314,21 +314,18 @@
       toggleClass(seat, 'ink-dark', false);
       if (isRedColor(color)) {
         panel.style.border = '1px solid #9f3736';
+        glow = '0 0 12px rgba(159, 55, 54, 0.45)';
         if (active) {
           fill = '#542226';
-          glow = '0 0 8px rgba(159, 55, 54, 0.35)';
         } else {
           fill = '#0e0e17';
-          glow = 'none';
         }
       } else if (active) {
         fill = isGreenColor(color) ? '#0f2422' : scaleHex(color, 0.34);
         panel.style.border = '1px solid ' + scaleHex(color, 0.62);
-        glow = '0 0 8px rgba(' + p.r + ',' + p.g + ',' + p.b + ',0.35)';
       } else {
         fill = '#0e0e17';
         panel.style.border = '1px solid ' + scaleHex(color, 0.62);
-        glow = 'none';
       }
     } else {
       panel.style.border = '1px solid rgba(7, 9, 13, 0.28)';
@@ -2275,6 +2272,8 @@
     var dx;
     var dy;
     var len;
+    var x1;
+    var y1;
     if (!from) {
       return;
     }
@@ -2283,20 +2282,26 @@
       to = seatCenter(toIndex);
       x2 = to.x;
       y2 = to.y;
-      dx = x2 - from.x;
-      dy = y2 - from.y;
-      len = Math.sqrt(dx * dx + dy * dy) || 1;
-      if (len > 56) {
-        x2 -= dx / len * 42;
-        y2 -= dy / len * 42;
-      }
       markStrikeTarget(toIndex);
     } else {
       x2 = clientX - board.left;
       y2 = clientY - board.top;
       markStrikeTarget(-1);
     }
-    showArrow(from.x, from.y, x2, y2);
+    dx = x2 - from.x;
+    dy = y2 - from.y;
+    len = Math.sqrt(dx * dx + dy * dy) || 1;
+    x1 = from.x;
+    y1 = from.y;
+    if (len > 56) {
+      x1 += dx / len * 42;
+      y1 += dy / len * 42;
+      if (toIndex >= 0 && toIndex !== fromIndex) {
+        x2 -= dx / len * 42;
+        y2 -= dy / len * 42;
+      }
+    }
+    showArrow(x1, y1, x2, y2);
   }
 
   function openStrike(fromIndex, toIndex) {
